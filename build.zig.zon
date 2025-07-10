@@ -1,5 +1,6 @@
 .{
-    .name = "mach-gpu-dawn",
+    .name = .necromach_gpu_dawn,
+    .fingerprint = 0xc6a6b810bf529b42,
     .version = "0.2.0",
     .paths = .{
         "dev",

@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
-    link(b, example, &example.root_module, options);
+    link(b, example, example.root_module, options);
 
     const example_step = b.step("dawn", "Build dawn from source");
     example_step.dependOn(&b.addRunArtifact(example).step);
@@ -46,8 +46,8 @@ pub const DownloadBinaryStep = struct {
         return download_step;
     }
 
-    fn make(step: *std.Build.Step, prog_node: std.Progress.Node) anyerror!void {
-        _ = prog_node;
+    fn make(step: *std.Build.Step, make_options: std.Build.Step.MakeOptions) anyerror!void {
+        _ = make_options;
         const download_step: *DownloadBinaryStep = @fieldParentPtr("step", step);
         try downloadFromBinary(download_step.b, download_step.target, download_step.options);
     }
@@ -90,7 +90,7 @@ pub const Options = struct {
     install_libs: bool = false,
 
     /// The binary release version to use from https://github.com/hexops/mach-gpu-dawn/releases
-            binary_version: []const u8 = "release-9c05275",
+    binary_version: []const u8 = "release-9c05275",
 
     /// Detects the default options to use for the given target.
     pub fn detectDefaults(self: Options, target: std.Target) Options {
@@ -313,7 +313,7 @@ pub fn downloadFromBinary(b: *std.Build, step: *std.Build.Step.Compile, options:
 
     // Remove OS version range / glibc version from triple (we do not include that in our download
     // URLs.)
-    var binary_target = std.zig.CrossTarget.fromTarget(target);
+    var binary_target = std.Target.Query.fromTarget(target);
     binary_target.os_version_min = .{ .none = undefined };
     binary_target.os_version_max = .{ .none = undefined };
     binary_target.glibc_version = null;
@@ -333,7 +333,7 @@ pub fn linkFromBinary(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Bu
 
     // Remove OS version range / glibc version from triple (we do not include that in our download
     // URLs.)
-    var binary_target = std.zig.CrossTarget.fromTarget(target);
+    var binary_target = std.Target.Query.fromTarget(target);
     binary_target.os_version_min = .{ .none = undefined };
     binary_target.os_version_max = .{ .none = undefined };
     binary_target.glibc_version = null;
@@ -400,7 +400,7 @@ pub fn addPathsToModuleFromBinary(b: *std.Build, module: *std.Build.Module, opti
 
     // Remove OS version range / glibc version from triple (we do not include that in our download
     // URLs.)
-    var binary_target = std.zig.CrossTarget.fromTarget(target);
+    var binary_target = std.Target.Query.fromTarget(target);
     binary_target.os_version_min = .{ .none = undefined };
     binary_target.os_version_max = .{ .none = undefined };
     binary_target.glibc_version = null;
@@ -659,7 +659,6 @@ fn isLinuxDesktopLike(tag: std.Target.Os.Tag) bool {
     return switch (tag) {
         .linux,
         .freebsd,
-        .kfreebsd,
         .openbsd,
         .dragonfly,
         => true,
@@ -671,8 +670,8 @@ pub fn appendFlags(step: *std.Build.Step.Compile, flags: *std.ArrayList([]const 
     if (debug_symbols) try flags.append("-g1") else try flags.append("-g0");
     if (is_cpp) try flags.append("-std=c++17");
     if (isLinuxDesktopLike(step.rootModuleTarget().os.tag)) {
-        step.defineCMacro("DAWN_USE_X11", "1");
-        step.defineCMacro("DAWN_USE_WAYLAND", "1");
+        step.root_module.addCMacro("DAWN_USE_X11", "1");
+        step.root_module.addCMacro("DAWN_USE_WAYLAND", "1");
     }
 }
 
@@ -700,7 +699,7 @@ fn buildLibDawnCommon(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibDawnCommonDependencies(b, lib, &lib.root_module, options);
+    linkLibDawnCommonDependencies(b, lib, lib.root_module, options);
 
     if (target.os.tag == .linux) lib.linkLibrary(b.dependency("x11_headers", .{
         .target = step.root_module.resolved_target.?,
@@ -766,7 +765,7 @@ fn buildLibDawnPlatform(b: *std.Build, step: *std.Build.Step.Compile, options: O
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibDawnPlatformDependencies(b, lib, &lib.root_module, options);
+    linkLibDawnPlatformDependencies(b, lib, lib.root_module, options);
 
     var cpp_flags = std.ArrayList([]const u8).init(b.allocator);
     try appendFlags(lib, &cpp_flags, options.debug, true);
@@ -793,19 +792,19 @@ fn buildLibDawnPlatform(b: *std.Build, step: *std.Build.Step.Compile, options: O
 }
 
 fn defineDawnEnableBackend(step: *std.Build.Step.Compile, options: Options) void {
-    step.defineCMacro("DAWN_ENABLE_BACKEND_NULL", "1");
+    step.root_module.addCMacro("DAWN_ENABLE_BACKEND_NULL", "1");
     // TODO: support the Direct3D 11 backend
-    // if (options.d3d11.?) step.defineCMacro("DAWN_ENABLE_BACKEND_D3D11", "1");
-    if (options.d3d12.?) step.defineCMacro("DAWN_ENABLE_BACKEND_D3D12", "1");
-    if (options.metal.?) step.defineCMacro("DAWN_ENABLE_BACKEND_METAL", "1");
-    if (options.vulkan.?) step.defineCMacro("DAWN_ENABLE_BACKEND_VULKAN", "1");
+    // if (options.d3d11.?) step.root_module.addCMacro("DAWN_ENABLE_BACKEND_D3D11", "1");
+    if (options.d3d12.?) step.root_module.addCMacro("DAWN_ENABLE_BACKEND_D3D12", "1");
+    if (options.metal.?) step.root_module.addCMacro("DAWN_ENABLE_BACKEND_METAL", "1");
+    if (options.vulkan.?) step.root_module.addCMacro("DAWN_ENABLE_BACKEND_VULKAN", "1");
     if (options.desktop_gl.?) {
-        step.defineCMacro("DAWN_ENABLE_BACKEND_OPENGL", "1");
-        step.defineCMacro("DAWN_ENABLE_BACKEND_DESKTOP_GL", "1");
+        step.root_module.addCMacro("DAWN_ENABLE_BACKEND_OPENGL", "1");
+        step.root_module.addCMacro("DAWN_ENABLE_BACKEND_DESKTOP_GL", "1");
     }
     if (options.opengl_es.?) {
-        step.defineCMacro("DAWN_ENABLE_BACKEND_OPENGL", "1");
-        step.defineCMacro("DAWN_ENABLE_BACKEND_OPENGLES", "1");
+        step.root_module.addCMacro("DAWN_ENABLE_BACKEND_OPENGL", "1");
+        step.root_module.addCMacro("DAWN_ENABLE_BACKEND_OPENGLES", "1");
     }
 }
 
@@ -843,7 +842,7 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibDawnNativeDependencies(b, lib, &lib.root_module, options);
+    linkLibDawnNativeDependencies(b, lib, lib.root_module, options);
 
     if (options.vulkan.?) lib.linkLibrary(b.dependency("vulkan_headers", .{
         .target = step.root_module.resolved_target.?,
@@ -856,22 +855,22 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
 
     // MacOS: this must be defined for macOS 13.3 and older.
     // Critically, this MUST NOT be included as a -D__kernel_ptr_semantics flag. If it is,
-    // then this macro will not be defined even if `defineCMacro` was also called!
-    lib.defineCMacro("__kernel_ptr_semantics", "");
+    // then this macro will not be defined even if `root_module.addCMacro` was also called!
+    lib.root_module.addCMacro("__kernel_ptr_semantics", "");
 
-    lib.defineCMacro("_HRESULT_DEFINED", "");
-    lib.defineCMacro("HRESULT", "long");
+    lib.root_module.addCMacro("_HRESULT_DEFINED", "");
+    lib.root_module.addCMacro("HRESULT", "long");
     defineDawnEnableBackend(lib, options);
 
     // TODO(build-system): make these optional
-    lib.defineCMacro("TINT_BUILD_SPV_READER", "1");
-    lib.defineCMacro("TINT_BUILD_SPV_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_WGSL_READER", "1");
-    lib.defineCMacro("TINT_BUILD_WGSL_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_MSL_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_HLSL_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_GLSL_WRITER", "1");
-    lib.defineCMacro("DAWN_NO_WINDOWS_UI", "1");
+    lib.root_module.addCMacro("TINT_BUILD_SPV_READER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_SPV_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_WGSL_READER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_WGSL_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_MSL_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_HLSL_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_GLSL_WRITER", "1");
+    lib.root_module.addCMacro("DAWN_NO_WINDOWS_UI", "1");
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
@@ -893,12 +892,12 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
         include("libs/dawn/out/Debug/gen/src"),
     });
     if (options.d3d12.?) {
-        lib.defineCMacro("DAWN_NO_WINDOWS_UI", "");
-        lib.defineCMacro("__EMULATE_UUID", "");
-        lib.defineCMacro("_CRT_SECURE_NO_WARNINGS", "");
-        lib.defineCMacro("WIN32_LEAN_AND_MEAN", "");
-        lib.defineCMacro("D3D10_ARBITRARY_HEADER_ORDERING", "");
-        lib.defineCMacro("NOMINMAX", "");
+        lib.root_module.addCMacro("DAWN_NO_WINDOWS_UI", "");
+        lib.root_module.addCMacro("__EMULATE_UUID", "");
+        lib.root_module.addCMacro("_CRT_SECURE_NO_WARNINGS", "");
+        lib.root_module.addCMacro("WIN32_LEAN_AND_MEAN", "");
+        lib.root_module.addCMacro("D3D10_ARBITRARY_HEADER_ORDERING", "");
+        lib.root_module.addCMacro("NOMINMAX", "");
         try flags.appendSlice(&.{
             "-Wno-nonportable-include-path",
             "-Wno-extern-c-compat",
@@ -1046,7 +1045,7 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
                 const abs_path = "libs/dawn/" ++ path;
                 try cpp_sources.append(abs_path);
             }
-        } else if (target.isAndroid()) {
+        } else if (target.abi.isAndroid()) {
             inline for ([_][]const u8{
                 "src/dawn/native/vulkan/external_memory/MemoryServiceImplementationAHardwareBuffer.cpp",
                 "src/dawn/native/vulkan/external_semaphore/SemaphoreServiceImplementationFD.cpp",
@@ -1054,7 +1053,7 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
                 const abs_path = "libs/dawn/" ++ path;
                 try cpp_sources.append(abs_path);
             }
-            lib.defineCMacro("DAWN_USE_SYNC_FDS", "1");
+            lib.root_module.addCMacro("DAWN_USE_SYNC_FDS", "1");
         }
     }
 
@@ -1140,20 +1139,20 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibTintDependencies(b, lib, &lib.root_module, options);
+    linkLibTintDependencies(b, lib, lib.root_module, options);
 
-    lib.defineCMacro("_HRESULT_DEFINED", "");
-    lib.defineCMacro("HRESULT", "long");
+    lib.root_module.addCMacro("_HRESULT_DEFINED", "");
+    lib.root_module.addCMacro("HRESULT", "long");
 
     // TODO(build-system): make these optional
-    lib.defineCMacro("TINT_BUILD_SPV_READER", "1");
-    lib.defineCMacro("TINT_BUILD_SPV_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_WGSL_READER", "1");
-    lib.defineCMacro("TINT_BUILD_WGSL_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_MSL_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_HLSL_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_GLSL_WRITER", "1");
-    lib.defineCMacro("TINT_BUILD_SYNTAX_TREE_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_SPV_READER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_SPV_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_WGSL_READER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_WGSL_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_MSL_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_HLSL_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_GLSL_WRITER", "1");
+    lib.root_module.addCMacro("TINT_BUILD_SYNTAX_TREE_WRITER", "1");
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
@@ -1328,7 +1327,7 @@ fn buildLibSPIRVTools(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibSPIRVToolsDependencies(b, lib, &lib.root_module, options);
+    linkLibSPIRVToolsDependencies(b, lib, lib.root_module, options);
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
@@ -1411,11 +1410,11 @@ fn buildLibAbseilCpp(b: *std.Build, step: *std.Build.Step.Compile, options: Opti
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibAbseilCppDependencies(b, lib, &lib.root_module, options);
+    linkLibAbseilCppDependencies(b, lib, lib.root_module, options);
 
     // musl needs this defined in order for off64_t to be a type, which abseil-cpp uses
-    lib.defineCMacro("_FILE_OFFSET_BITS", "64");
-    lib.defineCMacro("_LARGEFILE64_SOURCE", "");
+    lib.root_module.addCMacro("_FILE_OFFSET_BITS", "64");
+    lib.root_module.addCMacro("_LARGEFILE64_SOURCE", "");
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
@@ -1425,11 +1424,11 @@ fn buildLibAbseilCpp(b: *std.Build, step: *std.Build.Step.Compile, options: Opti
         "-Wno-deprecated-builtins",
     });
     if (target.os.tag == .windows) {
-        lib.defineCMacro("ABSL_FORCE_THREAD_IDENTITY_MODE", "2");
-        lib.defineCMacro("WIN32_LEAN_AND_MEAN", "");
-        lib.defineCMacro("D3D10_ARBITRARY_HEADER_ORDERING", "");
-        lib.defineCMacro("_CRT_SECURE_NO_WARNINGS", "");
-        lib.defineCMacro("NOMINMAX", "");
+        lib.root_module.addCMacro("ABSL_FORCE_THREAD_IDENTITY_MODE", "2");
+        lib.root_module.addCMacro("WIN32_LEAN_AND_MEAN", "");
+        lib.root_module.addCMacro("D3D10_ARBITRARY_HEADER_ORDERING", "");
+        lib.root_module.addCMacro("_CRT_SECURE_NO_WARNINGS", "");
+        lib.root_module.addCMacro("NOMINMAX", "");
         try flags.append(include("src/dawn/zig_mingw_pthread"));
     }
 
@@ -1482,7 +1481,7 @@ fn buildLibDawnWire(b: *std.Build, step: *std.Build.Step.Compile, options: Optio
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibDawnWireDependencies(b, lib, &lib.root_module, options);
+    linkLibDawnWireDependencies(b, lib, lib.root_module, options);
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
@@ -1535,13 +1534,13 @@ fn buildLibDxcompiler(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
         .optimize = if (options.debug) .Debug else .ReleaseFast,
     });
     if (options.install_libs) b.installArtifact(lib);
-    linkLibDxcompilerDependencies(b, lib, &lib.root_module, options);
+    linkLibDxcompilerDependencies(b, lib, lib.root_module, options);
 
-    lib.defineCMacro("UNREFERENCED_PARAMETER(x)", "");
-    lib.defineCMacro("MSFT_SUPPORTS_CHILD_PROCESSES", "1");
-    lib.defineCMacro("HAVE_LIBPSAPI", "1");
-    lib.defineCMacro("HAVE_LIBSHELL32", "1");
-    lib.defineCMacro("LLVM_ON_WIN32", "1");
+    lib.root_module.addCMacro("UNREFERENCED_PARAMETER(x)", "");
+    lib.root_module.addCMacro("MSFT_SUPPORTS_CHILD_PROCESSES", "1");
+    lib.root_module.addCMacro("HAVE_LIBPSAPI", "1");
+    lib.root_module.addCMacro("HAVE_LIBSHELL32", "1");
+    lib.root_module.addCMacro("LLVM_ON_WIN32", "1");
 
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
