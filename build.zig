@@ -144,7 +144,10 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     // branch: mach
     try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
 
-    step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Debug/gen/include") });
+    // cmake -S . -B out/Release -DDAWN_FETCH_DEPENDENCIES=ON -DDAWN_ENABLE_INSTALL=ON -DCMAKE_BUILD_TYPE=Release
+    try exec(b.allocator, &[_][]const u8{ "cmake", "-S", ".", "-B", "out/Release", "-DDAWN_FETCH_DEPENDENCIES=ON", "-DDAWN_ENABLE_INSTALL=ON", "-DDAWN_BUILD_SAMPLES=OFF", "-DCMAKE_BUILD_TYPE=Release" }, sdkPath("libs/dawn"));
+
+    step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
     step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });
     step.addIncludePath(.{ .cwd_relative = sdkPath("/src/dawn") });
 
@@ -206,7 +209,7 @@ fn ensureGitRepoCloned(allocator: std.mem.Allocator, clone_url: []const u8, revi
             // Reset to the desired revision
             exec(allocator, &[_][]const u8{ "git", "fetch" }, dir) catch |err| std.debug.print("warning: failed to 'git fetch' in {s}: {s}\n", .{ dir, @errorName(err) });
             try exec(allocator, &[_][]const u8{ "git", "checkout", "--quiet", "--force", revision }, dir);
-            try exec(allocator, &[_][]const u8{ "git", "submodule", "update", "--init", "--recursive" }, dir);
+            // try exec(allocator, &[_][]const u8{ "git", "submodule", "update", "--init", "--recursive" }, dir);
         }
         return;
     } else |err| return switch (err) {
@@ -215,7 +218,7 @@ fn ensureGitRepoCloned(allocator: std.mem.Allocator, clone_url: []const u8, revi
 
             try exec(allocator, &[_][]const u8{ "git", "clone", "-c", "core.longpaths=true", clone_url, dir }, sdkPath("/"));
             try exec(allocator, &[_][]const u8{ "git", "checkout", "--quiet", "--force", revision }, dir);
-            try exec(allocator, &[_][]const u8{ "git", "submodule", "update", "--init", "--recursive" }, dir);
+            // try exec(allocator, &[_][]const u8{ "git", "submodule", "update", "--init", "--recursive" }, dir);
             return;
         },
         else => err,
@@ -391,7 +394,7 @@ pub fn addPathsToModuleFromSource(b: *std.Build, module: *std.Build.Module, opti
     _ = b;
     _ = options;
 
-    module.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Debug/gen/include") });
+    module.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
     module.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });
     module.addIncludePath(.{ .cwd_relative = sdkPath("/src/dawn") });
 }
@@ -712,13 +715,13 @@ fn buildLibDawnCommon(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
         include("libs/dawn/src"),
-        include("libs/dawn/out/Debug/gen/include"),
-        include("libs/dawn/out/Debug/gen/src"),
+        include("libs/dawn/out/Release/gen/include"),
+        include("libs/dawn/out/Release/gen/src"),
     });
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
             "libs/dawn/src/dawn/common/",
-            "libs/dawn/out/Debug/gen/src/dawn/common/",
+            "libs/dawn/out/Release/gen/src/dawn/common/",
         },
         .flags = flags.items,
         .excluding_contains = &.{
@@ -774,7 +777,7 @@ fn buildLibDawnPlatform(b: *std.Build, step: *std.Build.Step.Compile, options: O
         include("libs/dawn/src"),
         include("libs/dawn/include"),
 
-        include("libs/dawn/out/Debug/gen/include"),
+        include("libs/dawn/out/Release/gen/include"),
     });
 
     var cpp_sources = std.ArrayList([]const u8).init(b.allocator);
@@ -878,7 +881,7 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
         include("libs/dawn"),
         include("libs/dawn/src"),
         include("libs/dawn/include"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-tools/src/include"),
+        include("libs/dawn/third_party/spirv-tools/src/include"),
         include("libs/dawn/third_party/khronos"),
 
         "-Wno-deprecated-declarations",
@@ -887,10 +890,10 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
 
         include("libs/dawn/"),
         include("libs/dawn/include/tint"),
-        include("libs/dawn/third_party/vulkan-deps/vulkan-tools/src/"),
+        include("libs/dawn/third_party/vulkan-tools/src/"),
 
-        include("libs/dawn/out/Debug/gen/include"),
-        include("libs/dawn/out/Debug/gen/src"),
+        include("libs/dawn/out/Release/gen/include"),
+        include("libs/dawn/out/Release/gen/src"),
     });
     if (options.d3d12.?) {
         lib.root_module.addCMacro("DAWN_NO_WINDOWS_UI", "");
@@ -915,7 +918,7 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
 
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
-            "libs/dawn/out/Debug/gen/src/dawn/",
+            "libs/dawn/out/Release/gen/src/dawn/",
             "libs/dawn/src/dawn/native/",
             "libs/dawn/src/dawn/native/utils/",
             "libs/dawn/src/dawn/native/stream/",
@@ -941,7 +944,7 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
     // dawn_native_gen
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
-            "libs/dawn/out/Debug/gen/src/dawn/native/",
+            "libs/dawn/out/Release/gen/src/dawn/native/",
         },
         .flags = flags.items,
         .excluding_contains = &.{ "test", "benchmark", "mock", "webgpu_dawn_native_proc.cpp" },
@@ -1008,7 +1011,7 @@ fn buildLibDawnNative(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
     if (options.desktop_gl.?) {
         try appendLangScannedSources(b, lib, .{
             .rel_dirs = &.{
-                "libs/dawn/out/Debug/gen/src/dawn/native/opengl/",
+                "libs/dawn/out/Release/gen/src/dawn/native/opengl/",
                 "libs/dawn/src/dawn/native/opengl/",
             },
             .flags = flags.items,
@@ -1162,11 +1165,11 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
 
         // Required for TINT_BUILD_SPV_READER=1 and TINT_BUILD_SPV_WRITER=1, if specified
         include("libs/dawn/third_party/vulkan-deps"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-tools/src"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-tools/src/include"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-headers/src/include"),
-        include("libs/dawn/out/Debug/gen/third_party/vulkan-deps/spirv-tools/src"),
-        include("libs/dawn/out/Debug/gen/third_party/vulkan-deps/spirv-tools/src/include"),
+        include("libs/dawn/third_party/spirv-tools/src"),
+        include("libs/dawn/third_party/spirv-tools/src/include"),
+        include("libs/dawn/third_party/spirv-headers/src/include"),
+        include("libs/dawn/out/Release/gen/third_party/spirv-tools/src"),
+        include("libs/dawn/out/Release/gen/third_party/spirv-tools/src/include"),
         include("libs/dawn/include"),
         include("libs/dawn/third_party/abseil-cpp"),
     });
@@ -1316,7 +1319,7 @@ fn linkLibSPIRVToolsDependencies(b: *std.Build, step: *std.Build.Step.Compile, m
     step.linkLibCpp();
 }
 
-// Builds third_party/vulkan-deps/spirv-tools sources; derived from third_party/vulkan-deps/spirv-tools/src/BUILD.gn
+// Builds third_party/spirv-tools sources; derived from third_party/spirv-tools/src/BUILD.gn
 fn buildLibSPIRVTools(b: *std.Build, step: *std.Build.Step.Compile, options: Options) !*std.Build.Step.Compile {
     const lib = if (!options.separate_libs) step else if (options.shared_libs) b.addSharedLibrary(.{
         .name = "spirv-tools",
@@ -1333,19 +1336,19 @@ fn buildLibSPIRVTools(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
     var flags = std.ArrayList([]const u8).init(b.allocator);
     try flags.appendSlice(&.{
         include("libs/dawn"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-tools/src"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-tools/src/include"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-headers/src/include"),
-        include("libs/dawn/out/Debug/gen/third_party/vulkan-deps/spirv-tools/src"),
-        include("libs/dawn/out/Debug/gen/third_party/vulkan-deps/spirv-tools/src/include"),
-        include("libs/dawn/third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1"),
+        include("libs/dawn/third_party/spirv-tools/src"),
+        include("libs/dawn/third_party/spirv-tools/src/include"),
+        include("libs/dawn/third_party/spirv-headers/src/include"),
+        include("libs/dawn/out/Release/gen/third_party/spirv-tools/src"),
+        include("libs/dawn/out/Release/gen/third_party/spirv-tools/src/include"),
+        include("libs/dawn/third_party/spirv-headers/src/include/spirv/unified1"),
     });
 
     // spvtools
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
-            "libs/dawn/third_party/vulkan-deps/spirv-tools/src/source/",
-            "libs/dawn/third_party/vulkan-deps/spirv-tools/src/source/util/",
+            "libs/dawn/third_party/spirv-tools/src/source/",
+            "libs/dawn/third_party/spirv-tools/src/source/util/",
         },
         .flags = flags.items,
         .excluding_contains = &.{ "test", "benchmark" },
@@ -1354,7 +1357,7 @@ fn buildLibSPIRVTools(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
     // spvtools_val
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
-            "libs/dawn/third_party/vulkan-deps/spirv-tools/src/source/val/",
+            "libs/dawn/third_party/spirv-tools/src/source/val/",
         },
         .flags = flags.items,
         .excluding_contains = &.{ "test", "benchmark" },
@@ -1363,7 +1366,7 @@ fn buildLibSPIRVTools(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
     // spvtools_opt
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
-            "libs/dawn/third_party/vulkan-deps/spirv-tools/src/source/opt/",
+            "libs/dawn/third_party/spirv-tools/src/source/opt/",
         },
         .flags = flags.items,
         .excluding_contains = &.{ "test", "benchmark" },
@@ -1372,7 +1375,7 @@ fn buildLibSPIRVTools(b: *std.Build, step: *std.Build.Step.Compile, options: Opt
     // spvtools_link
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
-            "libs/dawn/third_party/vulkan-deps/spirv-tools/src/source/link/",
+            "libs/dawn/third_party/spirv-tools/src/source/link/",
         },
         .flags = flags.items,
         .excluding_contains = &.{ "test", "benchmark" },
@@ -1489,15 +1492,15 @@ fn buildLibDawnWire(b: *std.Build, step: *std.Build.Step.Compile, options: Optio
         include("libs/dawn"),
         include("libs/dawn/src"),
         include("libs/dawn/include"),
-        include("libs/dawn/out/Debug/gen/include"),
-        include("libs/dawn/out/Debug/gen/src"),
+        include("libs/dawn/out/Release/gen/include"),
+        include("libs/dawn/out/Release/gen/src"),
     });
 
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
-            "libs/dawn/out/Debug/gen/src/dawn/wire/",
-            "libs/dawn/out/Debug/gen/src/dawn/wire/client/",
-            "libs/dawn/out/Debug/gen/src/dawn/wire/server/",
+            "libs/dawn/out/Release/gen/src/dawn/wire/",
+            "libs/dawn/out/Release/gen/src/dawn/wire/client/",
+            "libs/dawn/out/Release/gen/src/dawn/wire/server/",
             "libs/dawn/src/dawn/wire/",
             "libs/dawn/src/dawn/wire/client/",
             "libs/dawn/src/dawn/wire/server/",

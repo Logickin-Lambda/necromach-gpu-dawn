@@ -18,3 +18,5 @@
 
 libs*
 zig-out*
+
+.idea*
