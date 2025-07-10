@@ -139,19 +139,34 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     _ = mod;
     // Source scanning requires that these files actually exist on disk, so we must download them
     // here right now if we are building from source.
-    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "50cc3f6d82c44740b59674042375905d06aa8b43", sdkPath("/libs/dawn"));
+    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "f20a97cce77167de1cdaa71ecdb0064048c4e311", sdkPath("/libs/dawn"));
 
     // branch: mach
     try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
 
-    // try exec(b.allocator, &[_][]const u8{ "cmake", "-S", ".", "-B", "out/Release", "-DDAWN_FETCH_DEPENDENCIES=ON", "-DDAWN_ENABLE_INSTALL=ON", "-DDAWN_BUILD_SAMPLES=OFF", "-DCMAKE_BUILD_TYPE=Release" }, sdkPath("libs/dawn"));
-    try exec(b.allocator, &[_][]const u8{ "cmake", "-S", ".", "-B", "out/Release",
+    try exec(b.allocator, &[_][]const u8{
+        "cmake",
+        "-S",
+        ".",
+        "-B",
+        "out/Release",
+        "-G",
+        "Ninja",
+        "-DTARGET=x86_64-windows-gnu",
         "-DDAWN_FETCH_DEPENDENCIES=ON",
         "-DDAWN_ENABLE_INSTALL=OFF",
         "-DDAWN_BUILD_SAMPLES=OFF",
         "-DDAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG=OFF",
         "-DCMAKE_BUILD_TYPE=Release",
     }, sdkPath("libs/dawn"));
+
+    // try exec(b.allocator, &[_][]const u8{
+    //     "cmake",
+    //     "--build",
+    //     "./out/Release",
+    // }, sdkPath("libs/dawn"));
+    // _ = step;
+    // _ = options;
 
     step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
     step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });
