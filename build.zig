@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) !void {
 
     const options = Options{
         .install_libs = true,
-        .from_source = true,
+        .from_source = true, // false doesn't work currently for necromach fork reasons
     };
     // Just to demonstrate/test linking. This is not a functional example, see the mach/gpu examples
     // or Dawn C++ examples for functional example code.
@@ -139,7 +139,7 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     _ = mod;
     // Source scanning requires that these files actually exist on disk, so we must download them
     // here right now if we are building from source.
-    try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/dawn", "generated-2023-08-10.1691685418", sdkPath("/libs/dawn"));
+    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "50cc3f6d82c44740b59674042375905d06aa8b43", sdkPath("/libs/dawn"));
 
     // branch: mach
     try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
@@ -301,8 +301,7 @@ pub fn downloadFromBinary(b: *std.Build, step: *std.Build.Step.Compile, options:
     };
     if (!binaries_available) {
         const zig_triple = try target.zigTriple(b.allocator);
-        std.log.err("gpu-dawn binaries for {s} not available.", .{zig_triple});
-        std.log.err("-> open an issue: https://github.com/hexops/mach/issues", .{});
+        std.log.err("dawn binaries for {s} not available.", .{zig_triple});
         std.log.err("-> build from source (takes 5-15 minutes):", .{});
         std.log.err("    set `DAWN_FROM_SOURCE` environment variable or `Options.from_source` to `true`\n", .{});
         if (target.os.tag == .macos) {

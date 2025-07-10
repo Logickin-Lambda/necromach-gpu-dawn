@@ -10,12 +10,11 @@
 # -andrewrk
 
 .zig-cache/
-zig-out/
 /release/
 /debug/
 /build/
 /build-*/
 /docgen_tmp/
 
-libs/DirectXShaderCompiler
-libs/dawn
+libs*
+zig-out*
