@@ -144,8 +144,14 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     // branch: mach
     try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
 
-    // cmake -S . -B out/Release -DDAWN_FETCH_DEPENDENCIES=ON -DDAWN_ENABLE_INSTALL=ON -DCMAKE_BUILD_TYPE=Release
-    try exec(b.allocator, &[_][]const u8{ "cmake", "-S", ".", "-B", "out/Release", "-DDAWN_FETCH_DEPENDENCIES=ON", "-DDAWN_ENABLE_INSTALL=ON", "-DDAWN_BUILD_SAMPLES=OFF", "-DCMAKE_BUILD_TYPE=Release" }, sdkPath("libs/dawn"));
+    // try exec(b.allocator, &[_][]const u8{ "cmake", "-S", ".", "-B", "out/Release", "-DDAWN_FETCH_DEPENDENCIES=ON", "-DDAWN_ENABLE_INSTALL=ON", "-DDAWN_BUILD_SAMPLES=OFF", "-DCMAKE_BUILD_TYPE=Release" }, sdkPath("libs/dawn"));
+    try exec(b.allocator, &[_][]const u8{ "cmake", "-S", ".", "-B", "out/Release",
+        "-DDAWN_FETCH_DEPENDENCIES=ON",
+        "-DDAWN_ENABLE_INSTALL=OFF",
+        "-DDAWN_BUILD_SAMPLES=OFF",
+        "-DDAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG=OFF",
+        "-DCMAKE_BUILD_TYPE=Release",
+    }, sdkPath("libs/dawn"));
 
     step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
     step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });
@@ -1180,34 +1186,31 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
             "libs/dawn/src/tint",
+
             "libs/dawn/src/tint/lang/core/",
-            "libs/dawn/src/tint/lang/core/intrinsic/",
-            "libs/dawn/src/tint/lang/core/intrinsic/data",
             "libs/dawn/src/tint/lang/core/constant/",
+            "libs/dawn/src/tint/lang/core/intrinsic/",
             "libs/dawn/src/tint/lang/core/ir/",
             "libs/dawn/src/tint/lang/core/ir/transform/",
             "libs/dawn/src/tint/lang/core/type/",
 
-            // "libs/dawn/src/tint/utils/cli",
-            // "libs/dawn/src/tint/utils/file",
-            // "libs/dawn/src/tint/utils/command",
             "libs/dawn/src/tint/utils/containers",
-            "libs/dawn/src/tint/utils/debug",
+            // "libs/dawn/src/tint/utils/debug",
             "libs/dawn/src/tint/utils/diagnostic",
-            "libs/dawn/src/tint/utils/generator",
+            // "libs/dawn/src/tint/utils/generator",
             "libs/dawn/src/tint/utils/ice",
-            "libs/dawn/src/tint/utils/id",
+            // "libs/dawn/src/tint/utils/id",
             "libs/dawn/src/tint/utils/macros",
             "libs/dawn/src/tint/utils/math",
             "libs/dawn/src/tint/utils/memory",
-            "libs/dawn/src/tint/utils/reflection",
-            "libs/dawn/src/tint/utils/result",
+            // "libs/dawn/src/tint/utils/reflection",
+            // "libs/dawn/src/tint/utils/result",
             "libs/dawn/src/tint/utils/rtti",
             "libs/dawn/src/tint/utils/strconv",
             "libs/dawn/src/tint/utils/symbol",
             "libs/dawn/src/tint/utils/templates",
             "libs/dawn/src/tint/utils/text",
-            "libs/dawn/src/tint/utils/traits",
+            // "libs/dawn/src/tint/utils/traits",
         },
         .flags = flags.items,
         .excluding_contains = &.{ "test", "bench", "printer_windows", "printer_posix", "printer_other", "glsl.cc" },
@@ -1216,7 +1219,7 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
     var cpp_sources = std.ArrayList([]const u8).init(b.allocator);
 
     if (target.os.tag == .windows) {
-        try cpp_sources.append("libs/dawn/src/tint/utils/diagnostic/printer_windows.cc");
+        // try cpp_sources.append("libs/dawn/src/tint/utils/diagnostic/printer_windows.cc");
     } else if (target.os.tag.isDarwin() or isLinuxDesktopLike(target.os.tag)) {
         try cpp_sources.append("libs/dawn/src/tint/utils/diagnostic/printer_posix.cc");
     } else {
@@ -1238,7 +1241,7 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
             "libs/dawn/src/tint/lang/spirv/reader",
             "libs/dawn/src/tint/lang/spirv/reader/ast_parser",
             "libs/dawn/src/tint/lang/spirv/writer",
-            "libs/dawn/src/tint/lang/spirv/writer/ast_printer",
+            // "libs/dawn/src/tint/lang/spirv/writer/ast_printer",
             "libs/dawn/src/tint/lang/spirv/writer/common",
             "libs/dawn/src/tint/lang/spirv/writer/printer",
             "libs/dawn/src/tint/lang/spirv/writer/raise",
@@ -1254,8 +1257,8 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
             "libs/dawn/src/tint/lang/wgsl/reader/parser",
             "libs/dawn/src/tint/lang/wgsl/reader/program_to_ir",
             "libs/dawn/src/tint/lang/wgsl/ast",
-            "libs/dawn/src/tint/lang/wgsl/ast/transform",
-            "libs/dawn/src/tint/lang/wgsl/helpers",
+            // "libs/dawn/src/tint/lang/wgsl/ast/transform",
+            // "libs/dawn/src/tint/lang/wgsl/helpers",
             "libs/dawn/src/tint/lang/wgsl/inspector",
             "libs/dawn/src/tint/lang/wgsl/program",
             "libs/dawn/src/tint/lang/wgsl/resolver",
@@ -1272,7 +1275,7 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
             "libs/dawn/src/tint/lang/msl/writer",
-            "libs/dawn/src/tint/lang/msl/writer/ast_printer",
+            // "libs/dawn/src/tint/lang/msl/writer/ast_printer",
             "libs/dawn/src/tint/lang/msl/writer/common",
             "libs/dawn/src/tint/lang/msl/writer/printer",
             "libs/dawn/src/tint/lang/msl/validate",
@@ -1285,7 +1288,7 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
     try appendLangScannedSources(b, lib, .{
         .rel_dirs = &.{
             "libs/dawn/src/tint/lang/hlsl/writer",
-            "libs/dawn/src/tint/lang/hlsl/writer/ast_printer",
+            // "libs/dawn/src/tint/lang/hlsl/writer/ast_printer",
             "libs/dawn/src/tint/lang/hlsl/writer/common",
             "libs/dawn/src/tint/lang/hlsl/validate",
         },
@@ -1298,7 +1301,7 @@ fn buildLibTint(b: *std.Build, step: *std.Build.Step.Compile, options: Options) 
         .rel_dirs = &.{
             "libs/dawn/src/tint/lang/glsl/",
             "libs/dawn/src/tint/lang/glsl/writer",
-            "libs/dawn/src/tint/lang/glsl/writer/ast_printer",
+            // "libs/dawn/src/tint/lang/glsl/writer/ast_printer",
             "libs/dawn/src/tint/lang/glsl/writer/common",
         },
         .flags = flags.items,
