@@ -1,14 +1,16 @@
 const std = @import("std");
 
-const log = std.log.scoped(.mach_gpu_dawn);
+const log = std.log.scoped(.necromach_gpu_dawn);
 
 pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
 
+    try prepPathStrings(b.allocator);
+
     const options = Options{
         .install_libs = true,
-        .from_source = false,
+        .from_source = true,
     };
     // Just to demonstrate/test linking. This is not a functional example, see the mach/gpu examples
     // or Dawn C++ examples for functional example code.
@@ -1720,14 +1722,19 @@ fn scanSources(
     }
 }
 
-fn include(comptime rel: []const u8) []const u8 {
-    return comptime "-I" ++ sdkPath("/" ++ rel);
+inline fn include(rel: []const u8) []const u8 {
+    return std.fmt.allocPrint(alloc.?, "-I{s}", .{sdkPath(rel)}) catch unreachable;
 }
 
-fn sdkPath(comptime suffix: []const u8) []const u8 {
-    if (suffix[0] != '/') @compileError("suffix must be an absolute path");
-    return comptime blk: {
-        const root_dir = std.fs.path.dirname(@src().file) orelse ".";
-        break :blk root_dir ++ suffix;
-    };
+inline fn sdkPath(suffix: []const u8) []const u8 {
+    return std.fs.path.join(alloc.?, &.{ cwd_path.?, suffix }) catch unreachable;
 }
+
+inline fn prepPathStrings(allocator: std.mem.Allocator) !void {
+    alloc = allocator;
+    cwd_path = try std.fs.cwd().realpath(".", &cwd_name_buf);
+}
+
+var alloc: ?std.mem.Allocator = null;
+var cwd_name_buf: [std.fs.MAX_NAME_BYTES]u8 = .{0} ** std.fs.MAX_NAME_BYTES;
+var cwd_path: ?[]const u8 = null;
