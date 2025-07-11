@@ -173,18 +173,23 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
 
     try exec(b.allocator, &[_][]const u8{
         "cmake",
-        "-S",
-        "libs/dawn",
+        // "-G",
+        // "Ninja",
         "-B",
-        "libs/dawn/out/zig/Release",
+        "out/zig/test02",
+        // "-DCMAKE_TOOLCHAIN_FILE=../../zig-toolchain.cmake",
+        // "-DTARGET=x86_64-windows-msvc",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DCMAKE_TOOLCHAIN_FILE=../../zig-toolchain.cmake",
-    }, sdkPath(""));
+        "-DBUILD_SHARED_LIBS=OFF",
+        // "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    }, sdkPath("libs/dawn"));
 
     try exec(b.allocator, &[_][]const u8{
         "cmake",
         "--build",
-        "./out/zig/Release",
+        "./out/zig/test02",
+        "--config",
+        "Release",
     }, sdkPath("libs/dawn"));
     _ = step;
     _ = options;

@@ -106,15 +106,16 @@ set(CMAKE_C_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 set(CMAKE_CXX_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 
 # Cross-compile mode tweaks
-set(CMAKE_CROSSCOMPILING TRUE CACHE INTERNAL "")
-set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY CACHE INTERNAL "")
+#set(CMAKE_CROSSCOMPILING TRUE CACHE INTERNAL "")
+#set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY CACHE INTERNAL "")
 
 # Setting options that make sense for a Zig build
 set(DAWN_FETCH_DEPENDENCIES ON CACHE BOOL "Use fetch_dawn_dependencies.py as an alternative to using depot_tools")
 set(DAWN_USE_WINDOWS_UI OFF CACHE BOOL "Enable support for Windows UI surface")
-set(DAWN_ENABLE_INSTALL OFF CACHE BOOL "Enable install step for Dawn libraries")
+#set(DAWN_ENABLE_INSTALL OFF CACHE BOOL "Enable install step for Dawn libraries")
 set(DAWN_BUILD_SAMPLES OFF CACHE BOOL "Enables building Dawn's samples")
 set(DAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG OFF CACHE BOOL "Enable DXC asserts in non-debug builds")
+#set(DAWN_BUILD_MONOLITHIC_LIBRARY OFF CACHE BOOL "Bundle all dawn components into a single shared library.")
 
 
 
