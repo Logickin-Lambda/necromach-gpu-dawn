@@ -139,82 +139,106 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     _ = mod;
     // Source scanning requires that these files actually exist on disk, so we must download them
     // here right now if we are building from source.
-    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "f20a97cce77167de1cdaa71ecdb0064048c4e311", sdkPath("/libs/dawn"));
+    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "74a061ffd80ff0b539bdfcab4c659a69889ed6e5", sdkPath("/libs/dawn"));
 
     // branch: mach
     try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
 
+    // try exec(b.allocator, &[_][]const u8{
+    //     "cmake",
+    //     "-S",
+    //     ".",
+    //     "-B",
+    //     "out/Release",
+    //     "-G",
+    //     "Ninja",
+    //     "-DTARGET=x86_64-windows-gnu",
+    //     "-DDAWN_FETCH_DEPENDENCIES=ON",
+    //     "-DDAWN_ENABLE_INSTALL=OFF",
+    //     "-DDAWN_BUILD_SAMPLES=OFF",
+    //     "-DDAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG=OFF",
+    //     "-DCMAKE_BUILD_TYPE=Release",
+    // }, sdkPath("libs/dawn"));
+    //
+    // // try exec(b.allocator, &[_][]const u8{
+    // //     "cmake",
+    // //     "--build",
+    // //     "./out/Release",
+    // // }, sdkPath("libs/dawn"));
+    // // _ = step;
+    // // _ = options;
+
+
+
+
     try exec(b.allocator, &[_][]const u8{
         "cmake",
         "-S",
-        ".",
+        "libs/dawn",
         "-B",
-        "out/Release",
-        "-G",
-        "Ninja",
-        "-DTARGET=x86_64-windows-gnu",
-        "-DDAWN_FETCH_DEPENDENCIES=ON",
-        "-DDAWN_ENABLE_INSTALL=OFF",
-        "-DDAWN_BUILD_SAMPLES=OFF",
-        "-DDAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG=OFF",
+        "libs/dawn/out/zig/Release",
         "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_TOOLCHAIN_FILE=../../zig-toolchain.cmake",
+    }, sdkPath(""));
+
+    try exec(b.allocator, &[_][]const u8{
+        "cmake",
+        "--build",
+        "./out/zig/Release",
     }, sdkPath("libs/dawn"));
+    _ = step;
+    _ = options;
 
-    // try exec(b.allocator, &[_][]const u8{
-    //     "cmake",
-    //     "--build",
-    //     "./out/Release",
-    // }, sdkPath("libs/dawn"));
-    // _ = step;
-    // _ = options;
 
-    step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
-    step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });
-    step.addIncludePath(.{ .cwd_relative = sdkPath("/src/dawn") });
 
-    if (options.separate_libs) {
-        const lib_dawn_common = try buildLibDawnCommon(b, step, options);
-        const lib_dawn_platform = try buildLibDawnPlatform(b, step, options);
-        const lib_abseil_cpp = try buildLibAbseilCpp(b, step, options);
-        const lib_dawn_native = try buildLibDawnNative(b, step, options);
-        const lib_dawn_wire = try buildLibDawnWire(b, step, options);
-        const lib_spirv_tools = try buildLibSPIRVTools(b, step, options);
-        const lib_tint = try buildLibTint(b, step, options);
 
-        step.linkLibrary(lib_dawn_common);
-        step.linkLibrary(lib_dawn_platform);
-        step.linkLibrary(lib_abseil_cpp);
-        step.linkLibrary(lib_dawn_native);
-        step.linkLibrary(lib_dawn_wire);
-        step.linkLibrary(lib_spirv_tools);
-        step.linkLibrary(lib_tint);
-
-        if (options.d3d12.?) {
-            const lib_dxcompiler = try buildLibDxcompiler(b, step, options);
-            step.linkLibrary(lib_dxcompiler);
-        }
-        return;
-    }
-
-    const lib_dawn = if (options.shared_libs) b.addSharedLibrary(.{
-        .name = "dawn",
-        .target = step.root_module.resolved_target.?,
-        .optimize = if (options.debug) .Debug else .ReleaseFast,
-    }) else b.addStaticLibrary(.{
-        .name = "dawn",
-        .target = step.root_module.resolved_target.?,
-        .optimize = if (options.debug) .Debug else .ReleaseFast,
-    });
-    step.linkLibrary(lib_dawn);
-
-    _ = try buildLibDawnCommon(b, lib_dawn, options);
-    _ = try buildLibDawnPlatform(b, lib_dawn, options);
-    _ = try buildLibAbseilCpp(b, lib_dawn, options);
-    _ = try buildLibDawnNative(b, lib_dawn, options);
-    _ = try buildLibDawnWire(b, lib_dawn, options);
-    _ = try buildLibSPIRVTools(b, lib_dawn, options);
-    _ = try buildLibTint(b, lib_dawn, options);
-    if (options.d3d12.?) _ = try buildLibDxcompiler(b, lib_dawn, options);
+    // step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
+    // step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });
+    // step.addIncludePath(.{ .cwd_relative = sdkPath("/src/dawn") });
+    //
+    // if (options.separate_libs) {
+    //     const lib_dawn_common = try buildLibDawnCommon(b, step, options);
+    //     const lib_dawn_platform = try buildLibDawnPlatform(b, step, options);
+    //     const lib_abseil_cpp = try buildLibAbseilCpp(b, step, options);
+    //     const lib_dawn_native = try buildLibDawnNative(b, step, options);
+    //     const lib_dawn_wire = try buildLibDawnWire(b, step, options);
+    //     const lib_spirv_tools = try buildLibSPIRVTools(b, step, options);
+    //     const lib_tint = try buildLibTint(b, step, options);
+    //
+    //     step.linkLibrary(lib_dawn_common);
+    //     step.linkLibrary(lib_dawn_platform);
+    //     step.linkLibrary(lib_abseil_cpp);
+    //     step.linkLibrary(lib_dawn_native);
+    //     step.linkLibrary(lib_dawn_wire);
+    //     step.linkLibrary(lib_spirv_tools);
+    //     step.linkLibrary(lib_tint);
+    //
+    //     if (options.d3d12.?) {
+    //         const lib_dxcompiler = try buildLibDxcompiler(b, step, options);
+    //         step.linkLibrary(lib_dxcompiler);
+    //     }
+    //     return;
+    // }
+    //
+    // const lib_dawn = if (options.shared_libs) b.addSharedLibrary(.{
+    //     .name = "dawn",
+    //     .target = step.root_module.resolved_target.?,
+    //     .optimize = if (options.debug) .Debug else .ReleaseFast,
+    // }) else b.addStaticLibrary(.{
+    //     .name = "dawn",
+    //     .target = step.root_module.resolved_target.?,
+    //     .optimize = if (options.debug) .Debug else .ReleaseFast,
+    // });
+    // step.linkLibrary(lib_dawn);
+    //
+    // _ = try buildLibDawnCommon(b, lib_dawn, options);
+    // _ = try buildLibDawnPlatform(b, lib_dawn, options);
+    // _ = try buildLibAbseilCpp(b, lib_dawn, options);
+    // _ = try buildLibDawnNative(b, lib_dawn, options);
+    // _ = try buildLibDawnWire(b, lib_dawn, options);
+    // _ = try buildLibSPIRVTools(b, lib_dawn, options);
+    // _ = try buildLibTint(b, lib_dawn, options);
+    // if (options.d3d12.?) _ = try buildLibDxcompiler(b, lib_dawn, options);
 }
 
 fn ensureGitRepoCloned(allocator: std.mem.Allocator, clone_url: []const u8, revision: []const u8, dir: []const u8) !void {
