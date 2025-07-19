@@ -136,8 +136,8 @@ set(CMAKE_C_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 set(CMAKE_CXX_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 
 # Cross-compile mode tweaks
-#set(CMAKE_CROSSCOMPILING TRUE CACHE INTERNAL "")
-#set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY CACHE INTERNAL "")
+set(CMAKE_CROSSCOMPILING TRUE CACHE INTERNAL "")
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY CACHE INTERNAL "")
 
 # Setting options that make sense for a Zig build
 set(DAWN_ENABLE_D3D11 OFF CACHE BOOL "Enable compilation of the D3D11 backend")
@@ -148,19 +148,20 @@ set(DAWN_USE_WINDOWS_UI OFF CACHE BOOL "Enable support for Windows UI surface")
 set(DAWN_FETCH_DEPENDENCIES ON CACHE BOOL "Use fetch_dawn_dependencies.py as an alternative to using depot_tools")
 set(DAWN_BUILD_SAMPLES OFF CACHE BOOL "Enables building Dawn's samples")
 set(DAWN_BUILD_TESTS OFF CACHE BOOL "Enables building Dawn's tests")
-set(DAWN_BUILD_MONOLITHIC_LIBRARY ON CACHE BOOL "Bundle all dawn components into a single shared library.")
+set(DAWN_BUILD_MONOLITHIC_LIBRARY OFF CACHE BOOL "Bundle all dawn components into a single shared library.")
 set(DAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG OFF CACHE BOOL "Enable DXC asserts in non-debug builds")
 # set(DAWN_USE_BUILT_DXC ON CACHE BOOL "Enable building and using DXC by the D3D12 backend")
 
 set(TINT_BUILD_CMD_TOOLS OFF CACHE BOOL "Build the Tint command line tools")
 set(TINT_BUILD_TESTS OFF CACHE BOOL "Build tests")
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 
 
 
 # Load the project patch file after Dawn's top level CMakeLists.txt
-set(CMAKE_PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/zig-patch-project.cmake" CACHE INTERNAL "")
+# set(CMAKE_PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/zig-patch-project.cmake" CACHE INTERNAL "")
 
 
 

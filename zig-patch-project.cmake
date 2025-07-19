@@ -45,18 +45,18 @@ if (WIN32)
 
 
 
-    set(_MINGW_GUIDS_CPP
-        "${CMAKE_CURRENT_LIST_DIR}/src/dawn/mingw_helpers.cpp"
-    )
-    if (EXISTS "${_MINGW_GUIDS_CPP}")
-        message(STATUS "Adding MinGW GUID impl: ${_MINGW_GUIDS_CPP}")
-        if (TARGET webgpu_dawn)
-            target_sources(webgpu_dawn PRIVATE "${_MINGW_GUIDS_CPP}")
-        endif()
-    else()
-        message(WARN
-        "Can't find ${_MINGW_GUIDS_CPP}")
-    endif()
+    # set(_MINGW_GUIDS_CPP
+    #     "${CMAKE_CURRENT_LIST_DIR}/src/dawn/mingw_helpers.cpp"
+    # )
+    # if (EXISTS "${_MINGW_GUIDS_CPP}")
+    #     message(STATUS "Adding MinGW GUID impl: ${_MINGW_GUIDS_CPP}")
+    #     if (TARGET webgpu_dawn)
+    #         target_sources(webgpu_dawn PRIVATE "${_MINGW_GUIDS_CPP}")
+    #     endif()
+    # else()
+    #     message(WARN
+    #     "Can't find ${_MINGW_GUIDS_CPP}")
+    # endif()
 
 
 

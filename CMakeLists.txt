@@ -29,5 +29,5 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/dawn")
 
 if (WIN32)
     add_library(mingw_helpers STATIC "src/dawn/mingw_helpers.cpp")
-    target_link_libraries(webgpu_dawn PRIVATE mingw_helpers)
+    target_link_libraries(dawn_native PRIVATE mingw_helpers)
 endif()

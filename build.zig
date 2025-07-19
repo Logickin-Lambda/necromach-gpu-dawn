@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) !void {
 
     const options = Options{
         .install_libs = true,
-        .from_source = true, // false doesn't work currently for necromach fork reasons
+        .from_source = true,
     };
     // Just to demonstrate/test linking. This is not a functional example, see the mach/gpu examples
     // or Dawn C++ examples for functional example code.
@@ -212,7 +212,6 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
         "build",
         "-DTARGET=x86_64-windows-gnu",
         "-DCMAKE_BUILD_TYPE=Release",
-        "-DBUILD_SHARED_LIBS=OFF",
     }, sdkPath("."));
 
     try exec(b.allocator, &[_][]const u8{
