@@ -168,17 +168,14 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     // // _ = step;
     // // _ = options;
 
-
-
-
     try exec(b.allocator, &[_][]const u8{
         "cmake",
-        // "-G",
-        // "Ninja",
+        "-G",
+        "Ninja",
         "-B",
-        "out/zig/test02",
-        // "-DCMAKE_TOOLCHAIN_FILE=../../zig-toolchain.cmake",
-        // "-DTARGET=x86_64-windows-msvc",
+        "out/zig/test03",
+        "-DCMAKE_TOOLCHAIN_FILE=../../zig-toolchain.cmake",
+        "-DTARGET=x86_64-windows-gnu",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DBUILD_SHARED_LIBS=OFF",
         // "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
@@ -187,15 +184,12 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     try exec(b.allocator, &[_][]const u8{
         "cmake",
         "--build",
-        "./out/zig/test02",
+        "./out/zig/test03",
         "--config",
         "Release",
     }, sdkPath("libs/dawn"));
     _ = step;
     _ = options;
-
-
-
 
     // step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
     // step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });
