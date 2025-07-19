@@ -1,6 +1,8 @@
 #ifdef __MINGW32__
 #include <guiddef.h>
 #include <stdint.h>
+#include <wrl/client.h>
+#include <d3d12.h>
 
 #define MINGW_UUIDOF(type, spec)                                              \
     extern "C++" {                                                            \
@@ -53,4 +55,22 @@ constexpr GUID guid_from_string(const char str[37]) {
 // The point of this helper file is to export the specializations for MINGW_UUIDOF
 // below, since MinGW does not have these as part of dxguid yet (not completely up
 // to date.)
+
 MINGW_UUIDOF(IDXGraphicsAnalysis, "9f251514-9d4d-4902-9d60-18988ab7d4b5")
+
+// But of course, that handy macro only works for one of the two cases we need...
+// Such reusability.
+extern "C++" {
+  // Primary template for ComPtr—forward to the IID of the raw interface:
+  template<>
+  const GUID &__mingw_uuidof<Microsoft::WRL::ComPtr<ID3D12Device>>() {
+    static constexpr IID __uuid_inst =
+        guid_from_string("189819f1-1db6-4b57-be54-1821339b85f7");
+    return __uuid_inst;
+  }
+  // Pointer version forwards to the ComPtr<> version:
+  template<>
+  const GUID &__mingw_uuidof<Microsoft::WRL::ComPtr<ID3D12Device>*>() {
+    return __mingw_uuidof<Microsoft::WRL::ComPtr<ID3D12Device>>();
+  }
+}  // extern "C++"

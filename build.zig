@@ -142,7 +142,7 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "74a061ffd80ff0b539bdfcab4c659a69889ed6e5", sdkPath("/libs/dawn"));
 
     // branch: mach
-    try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
+    // try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
 
     // try exec(b.allocator, &[_][]const u8{
     //     "cmake",
@@ -168,28 +168,69 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     // // _ = step;
     // // _ = options;
 
+    //
+    //
+    //
+    //
+    //
+
+    // try exec(b.allocator, &[_][]const u8{
+    //     "cmake",
+    //     "-G",
+    //     "Ninja",
+    //     "-B",
+    //     "out/zig/test03",
+    //     "-DCMAKE_TOOLCHAIN_FILE=../../zig-toolchain.cmake",
+    //     "-DTARGET=x86_64-windows-gnu",
+    //     "-DCMAKE_BUILD_TYPE=Release",
+    //     "-DBUILD_SHARED_LIBS=OFF",
+    //     // "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    // }, sdkPath("libs/dawn"));
+
+    // try exec(b.allocator, &[_][]const u8{
+    //     "cmake",
+    //     "--build",
+    //     "./out/zig/test03",
+    //     "--config",
+    //     "Release",
+    // }, sdkPath("libs/dawn"));
+    // _ = step;
+    // _ = options;
+
+    //
+    //
+    //
+    //
+    //
+    //
+
     try exec(b.allocator, &[_][]const u8{
         "cmake",
         "-G",
         "Ninja",
         "-B",
-        "out/zig/test03",
-        "-DCMAKE_TOOLCHAIN_FILE=../../zig-toolchain.cmake",
+        "build",
         "-DTARGET=x86_64-windows-gnu",
         "-DCMAKE_BUILD_TYPE=Release",
         "-DBUILD_SHARED_LIBS=OFF",
-        // "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-    }, sdkPath("libs/dawn"));
+    }, sdkPath("."));
 
     try exec(b.allocator, &[_][]const u8{
         "cmake",
         "--build",
-        "./out/zig/test03",
+        "./build",
         "--config",
         "Release",
-    }, sdkPath("libs/dawn"));
+    }, sdkPath("."));
     _ = step;
     _ = options;
+
+    //
+    //
+    //
+    //
+    //
+    //
 
     // step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/out/Release/gen/include") });
     // step.addIncludePath(.{ .cwd_relative = sdkPath("/libs/dawn/include") });

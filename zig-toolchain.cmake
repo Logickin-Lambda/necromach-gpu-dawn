@@ -150,10 +150,28 @@ set(DAWN_BUILD_SAMPLES OFF CACHE BOOL "Enables building Dawn's samples")
 set(DAWN_BUILD_TESTS OFF CACHE BOOL "Enables building Dawn's tests")
 set(DAWN_BUILD_MONOLITHIC_LIBRARY ON CACHE BOOL "Bundle all dawn components into a single shared library.")
 set(DAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG OFF CACHE BOOL "Enable DXC asserts in non-debug builds")
-set(DAWN_USE_BUILT_DXC ON CACHE BOOL "Enable building and using DXC by the D3D12 backend")
+# set(DAWN_USE_BUILT_DXC ON CACHE BOOL "Enable building and using DXC by the D3D12 backend")
 
 set(TINT_BUILD_CMD_TOOLS OFF CACHE BOOL "Build the Tint command line tools")
 set(TINT_BUILD_TESTS OFF CACHE BOOL "Build tests")
+
+
+
+
+
+# Load the project patch file after Dawn's top level CMakeLists.txt
+set(CMAKE_PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/zig-patch-project.cmake" CACHE INTERNAL "")
+
+
+
+
+
+set(_SHIMS_H "${CMAKE_CURRENT_LIST_DIR}/src/shims.h")
+# add_compile_options(
+#   $<$<COMPILE_LANGUAGE:C>:-include${_SHIMS_H}>
+#   $<$<COMPILE_LANGUAGE:CXX>:-include${_SHIMS_H}>
+# )
+# message(STATUS "Will -include ${_SHIMS_H} in all TUs")
 
 
 
@@ -177,30 +195,29 @@ if (WIN32)
 endif()
 
 if (WIN32)
-    # Inline‐GUIDs so you don't need uuid.lib or dxguid.lib
-    add_compile_definitions(__EMULATE_UUID)
-
     # Slim down windows.h and avoid min/max macros
     add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
 
     # Let D3D headers be included in any order
     add_compile_definitions(D3D10_ARBITRARY_HEADER_ORDERING)
 
-    # Satisfy DXC code that uses UNREFERENCED_PARAMETER
-    add_compile_definitions("UNREFERENCED_PARAMETER(x)=")
-
     # Tell LLVM/Tint/DXC we really are on Win32 with PSAPI etc.
     add_compile_definitions(MSFT_SUPPORTS_CHILD_PROCESSES=1 HAVE_LIBPSAPI=1 HAVE_LIBSHELL32=1 LLVM_ON_WIN32=1)
 
     message(STATUS
     "Introducing a bunch more definitions/macros for Windows-gnu build:\n"
-    "\t__EMULATE_UUID"
     "\tWIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS"
     "\tD3D10_ARBITRARY_HEADER_ORDERING"
-    "\tUNREFERENCED_PARAMETER(x)="
     "\tMSFT_SUPPORTS_CHILD_PROCESSES=1 HAVE_LIBPSAPI=1 HAVE_LIBSHELL32=1 LLVM_ON_WIN32=1"
     )
 endif()
+
+
+
+
+
+
+
 
 if (WIN32)
     # Determine the SDK root:
@@ -352,14 +369,6 @@ endif()
 #   message(STATUS "Injecting stub atlbase.h so <atlbase.h> and CComPtr<T> exist")
 # endif()
 
-
-
-
-
-
-
-# Load the project patch file after Dawn's top level CMakeLists.txt
-# set(CMAKE_PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/zig-patch-project.cmake" CACHE INTERNAL "")
 
 
 
