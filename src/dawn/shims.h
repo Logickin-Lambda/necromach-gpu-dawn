@@ -35,15 +35,15 @@
 //   #define __EMULATE_UUID
 // #endif
 
-#ifndef __EMULATE_UUID
-  #define __EMULATE_UUID
-  typedef struct _GUID {
-    unsigned long  Data1;
-    unsigned short Data2;
-    unsigned short Data3;
-    unsigned char  Data4[8];
-  } GUID;
-#endif
+// #ifndef __EMULATE_UUID
+//   #define __EMULATE_UUID
+//   typedef struct _GUID {
+//     unsigned long  Data1;
+//     unsigned short Data2;
+//     unsigned short Data3;
+//     unsigned char  Data4[8];
+//   } GUID;
+// #endif
 
 // #ifndef UNREFERENCED_PARAMETER
 //   #define UNREFERENCED_PARAMETER(x) (void)(x)

@@ -135,6 +135,8 @@ endif()
 set(CMAKE_C_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 set(CMAKE_CXX_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
 # Cross-compile mode tweaks
 set(CMAKE_CROSSCOMPILING TRUE CACHE INTERNAL "")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY CACHE INTERNAL "")
@@ -150,13 +152,29 @@ set(DAWN_BUILD_SAMPLES OFF CACHE BOOL "Enables building Dawn's samples")
 set(DAWN_BUILD_TESTS OFF CACHE BOOL "Enables building Dawn's tests")
 set(DAWN_BUILD_MONOLITHIC_LIBRARY OFF CACHE BOOL "Bundle all dawn components into a single shared library.")
 set(DAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG OFF CACHE BOOL "Enable DXC asserts in non-debug builds")
-# set(DAWN_USE_BUILT_DXC ON CACHE BOOL "Enable building and using DXC by the D3D12 backend")
+set(DAWN_USE_BUILT_DXC ON CACHE BOOL "Enable building and using DXC by the D3D12 backend")
 
 set(TINT_BUILD_CMD_TOOLS OFF CACHE BOOL "Build the Tint command line tools")
 set(TINT_BUILD_TESTS OFF CACHE BOOL "Build tests")
 
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(HLSL_INCLUDE_TESTS OFF CACHE BOOL "Generate build targets for the HLSL unit tests.")
+set(HLSL_BUILD_DXILCONV OFF CACHE BOOL "Include DXBC to DXIL converter and tools.")
 
+# set(LLVM_INCLUDE_TOOLS OFF CACHE BOOL "Generate build targets for the LLVM tools.")
+set(LLVM_BUILD_TOOLS OFF CACHE BOOL "Build the LLVM tools. If OFF, just generate build targets.")
+set(LLVM_INCLUDE_UTILS OFF CACHE BOOL "Generate build targets for the LLVM utils.")
+set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "Build the LLVM example programs. If OFF, just generate build targets.")
+set(LLVM_BUILD_EXAMPLES OFF CACHE BOOL "Generate build targets for the LLVM examples")
+set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "Generate build targets for the LLVM unit tests.")
+set(LLVM_BUILD_TESTS OFF CACHE BOOL "Build LLVM unit tests. If OFF, just generate build targets.")
+set(LLVM_INCLUDE_DOCS OFF CACHE BOOL "Generate build targets for llvm documentation.")
+set(LLVM_BUILD_DOCS OFF CACHE BOOL "Build the llvm documentation.")
+set(LLVM_DISTRIBUTION_COMPONENTS "dxcompiler" CACHE STRING "")
+
+
+
+
+#  && false // patched to false for zig/clang on windows
 
 
 
@@ -167,7 +185,7 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 
 
-set(_SHIMS_H "${CMAKE_CURRENT_LIST_DIR}/src/shims.h")
+# set(_SHIMS_H "${CMAKE_CURRENT_LIST_DIR}/src/shims.h")
 # add_compile_options(
 #   $<$<COMPILE_LANGUAGE:C>:-include${_SHIMS_H}>
 #   $<$<COMPILE_LANGUAGE:CXX>:-include${_SHIMS_H}>
