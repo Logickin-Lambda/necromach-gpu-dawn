@@ -150,7 +150,7 @@ set(DAWN_USE_WINDOWS_UI OFF CACHE BOOL "Enable support for Windows UI surface")
 set(DAWN_FETCH_DEPENDENCIES ON CACHE BOOL "Use fetch_dawn_dependencies.py as an alternative to using depot_tools")
 set(DAWN_BUILD_SAMPLES OFF CACHE BOOL "Enables building Dawn's samples")
 set(DAWN_BUILD_TESTS OFF CACHE BOOL "Enables building Dawn's tests")
-set(DAWN_BUILD_MONOLITHIC_LIBRARY OFF CACHE BOOL "Bundle all dawn components into a single shared library.")
+set(DAWN_BUILD_MONOLITHIC_LIBRARY ON CACHE BOOL "Bundle all dawn components into a single shared library.")
 set(DAWN_DXC_ENABLE_ASSERTS_IN_NDEBUG OFF CACHE BOOL "Enable DXC asserts in non-debug builds")
 set(DAWN_USE_BUILT_DXC ON CACHE BOOL "Enable building and using DXC by the D3D12 backend")
 
