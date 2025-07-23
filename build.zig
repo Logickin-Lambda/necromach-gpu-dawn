@@ -3,7 +3,7 @@ const std = @import("std");
 const log = std.log.scoped(.necromach_gpu_dawn);
 
 pub fn build(b: *std.Build) !void {
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize: std.builtin.OptimizeMode = .ReleaseFast;
     const target = b.standardTargetOptions(.{});
 
     try prepPathStrings(b.allocator);
@@ -20,10 +20,12 @@ pub fn build(b: *std.Build) !void {
         .target = target,
         .optimize = optimize,
     });
-    link(b, example, example.root_module, options);
+    try link(b, example, example.root_module, options);
 
     const example_step = b.step("dawn", "Build dawn from source");
     example_step.dependOn(&b.addRunArtifact(example).step);
+
+    _ = b.step("check", "Do nothing, but at least zls won't starve your cpu trying to run cmake");
 }
 
 pub const DownloadBinaryStep = struct {
@@ -114,13 +116,13 @@ pub const Options = struct {
     }
 };
 
-pub fn link(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.Module, options: Options) void {
+pub fn link(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.Module, options: Options) !void {
     const target = step.rootModuleTarget();
     const opt = options.detectDefaults(target);
 
     //
     //
-    linkFromSource(b, step, mod, opt) catch unreachable;
+    try linkFromSource(b, step, mod, opt);
     //
     //
 
@@ -141,11 +143,29 @@ pub fn link(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.Module
     // }
 }
 
+fn isTargetSupported(target: std.Target) bool {
+    return switch (target.os.tag) {
+        .windows => target.abi.isGnu(),
+        .linux => (target.cpu.arch.isX86() or target.cpu.arch.isAARCH64()) and (target.abi.isGnu() or target.abi.isMusl()),
+        .macos => blk: {
+            if (!target.cpu.arch.isX86() and !target.cpu.arch.isAARCH64()) break :blk false;
+
+            // The minimum macOS version with which our binaries can be used.
+            const min_available = std.SemanticVersion{ .major = 11, .minor = 0, .patch = 0 };
+
+            // If the target version is >= the available version, then it's OK.
+            const order = target.os.version_range.semver.min.order(min_available);
+            break :blk (order == .gt or order == .eq);
+        },
+        else => false,
+    };
+}
+
 fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.Module, options: Options) !void {
     _ = mod;
     // Source scanning requires that these files actually exist on disk, so we must download them
     // here right now if we are building from source.
-    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "479a27f3fc7712b6a73027f7e1609b0a3c4eb767", sdkPath("/libs/dawn"));
+    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "29aa5f2af0115a12e5501ea52171ce5c59821cfd", sdkPath("/libs/dawn"));
 
     // branch: mach
     // try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
@@ -210,26 +230,117 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     //
     //
 
-    try exec(b.allocator, &[_][]const u8{
-        "cmake",
-        "-G",
-        "Ninja",
-        "-B",
-        "build",
-        "-DCMAKE_TOOLCHAIN_FILE=zig-toolchain.cmake",
-        "-DTARGET=x86_64-windows-gnu",
-        "-DCMAKE_BUILD_TYPE=Release",
-    }, sdkPath("."));
+    //
+    //
 
-    try exec(b.allocator, &[_][]const u8{
-        "cmake",
-        "--build",
-        "./build",
-        "--config",
-        "Release",
-    }, sdkPath("."));
-    _ = step;
     _ = options;
+
+    // {
+    //     const target_triple = try step.rootModuleTarget().zigTriple(b.allocator);
+    //     const cmake_d_target = try std.fmt.allocPrint(b.allocator, "-DTARGET={s}", .{target_triple});
+
+    //     if (!isTargetSupported(step.rootModuleTarget())) {
+    //         std.log.err("Target {s} is not currently supported.", .{target_triple});
+    //         return error.TargetNotSupported;
+    //     } else {
+    //         std.log.info("Building zdawn for target {s}.", .{target_triple});
+    //     }
+
+    //     try exec(b.allocator, &[_][]const u8{
+    //         "cmake",
+    //         "-G",
+    //         "Ninja",
+    //         "-B",
+    //         "build",
+    //         "-DCMAKE_TOOLCHAIN_FILE=zig-toolchain.cmake",
+    //         cmake_d_target,
+    //         "-DCMAKE_BUILD_TYPE=Release",
+    //     }, sdkPath("."));
+
+    //     try exec(b.allocator, &[_][]const u8{
+    //         "cmake",
+    //         "--build",
+    //         "./build",
+    //         "--config",
+    //         "Release",
+    //     }, sdkPath("."));
+    // }
+
+    const zdawn_module = b.addModule("root", .{
+        .root_source_file = b.path("src/zdawn.zig"),
+        .target = step.root_module.resolved_target,
+        .optimize = .ReleaseFast,
+    });
+    zdawn_module.addIncludePath(b.path("build/libs/dawn/gen/include"));
+    // zdawn_module.strip = true;
+
+    const zdawn_lib = b.addStaticLibrary(.{
+        .name = "zdawn",
+        .root_module = zdawn_module,
+    });
+    b.installArtifact(zdawn_lib);
+    // zdawn_lib.link_gc_sections = true;
+
+    {
+        const cwd = std.fs.cwd();
+        var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
+        defer obj_dir.close();
+
+        const archive_paths: [3][]const u8 = .{
+            b.dependency("mach_dxc", .{}).path("machdxcompiler.lib").getPath(b),
+            b.path("build/libmingw_helpers.a").getPath(b),
+            b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a").getPath(b),
+        };
+        const objects_dir_path = b.path("build/objects");
+        for (archive_paths) |archive| {
+            const extract = b.addSystemCommand(&.{ "zig", "ar", "x", archive });
+            extract.cwd = objects_dir_path;
+            zdawn_lib.step.dependOn(&extract.step);
+        }
+
+        var obj_it = obj_dir.iterate();
+        while (try obj_it.next()) |entry| {
+            zdawn_lib.addObjectFile(try b.path("build/objects").join(b.allocator, entry.name));
+        }
+    }
+
+    {
+        zdawn_lib.linkLibC();
+        zdawn_lib.linkLibCpp();
+        zdawn_lib.linkSystemLibrary("oleaut32");
+        zdawn_lib.linkSystemLibrary("ole32");
+        zdawn_lib.linkSystemLibrary("dbghelp");
+        zdawn_lib.linkSystemLibrary("dxguid");
+    }
+
+    //
+    //
+    //
+
+    // zdawn_lib.addLibraryPath(b.dependency("mach_dxc", .{}).path(""));
+    // zdawn_lib.addLibraryPath(b.path("build"));
+    // zdawn_lib.addLibraryPath(b.path("build/libs/dawn/src/dawn/native"));
+
+    // zdawn_lib.linkSystemLibrary("machdxcompiler");
+    // zdawn_lib.linkSystemLibrary("mingw_helpers");
+    // zdawn_lib.linkSystemLibrary("webgpu_dawn");
+
+    // zdawn_lib.addObjectFile(b.dependency("mach_dxc", .{}).path("machdxcompiler.lib"));
+    // zdawn_lib.addObjectFile(b.path("build/libmingw_helpers.a"));
+    // zdawn_lib.addObjectFile(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
+
+    // zdawn_lib.addObjectFiles(try extractArchiveToObjs(b, b.dependency("mach_dxc", .{}).path("machdxcompiler.lib")));
+    // zdawn_lib.addObjectFiles(try extractArchiveToObjs(b, b.path("build/libmingw_helpers.a")));
+    // zdawn_lib.addObjectFiles(try extractArchiveToObjs(b, b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a")));
+
+    // try addArchive(b, zdawn_lib, b.dependency("mach_dxc", .{}).path("machdxcompiler.lib"));
+    // try addArchive(b, zdawn_lib, b.path("build/libmingw_helpers.a"));
+    // try addArchive(b, zdawn_lib, b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
+
+    //
+    //
+
+    step.linkLibrary(zdawn_lib);
 
     //
     //
@@ -286,6 +397,82 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     // _ = try buildLibTint(b, lib_dawn, options);
     // if (options.d3d12.?) _ = try buildLibDxcompiler(b, lib_dawn, options);
 }
+
+// fn addArchive(b: *std.Build, lib: *std.Build.Step.Compile, lazy_path: std.Build.LazyPath) !void {
+//     const archive_path = lazy_path.getPath(b);
+//     const outdir = try b.cache_root.join(b.allocator, &.{ "unpack", std.fs.path.basename(archive_path) });
+
+//     // zig ar t <archive>
+//     const list = b.addSystemCommand(&.{ "zig", "ar", "t", archive_path });
+//     const list_out_p = list.captureStdOut();
+
+//     // zig ar x <archive>
+//     const ext = b.addSystemCommand(&.{ "zig", "ar", "x", archive_path });
+//     ext.cwd = outdir;
+//     ext.step.dependOn(&list.step);
+
+//     const members = try list.getStdOut(b.allocator);
+//     for (std.mem.splitScalar(u8, members, '\n')) |name| {
+//         if (name.len == 0) continue;
+//         const full = try std.fs.path.join(b.allocator, &.{ outdir, name });
+//         lib.addObjectFile(full);
+//     }
+
+//     // // Where to drop the extracted .o's (inside zig-cache):
+//     // const out_dir = try b.cache_root.join(b.allocator, &.{ "unpacked", std.fs.path.basename(archive_path) });
+
+//     // // zig ar t <archive>
+//     // const list = b.addSystemCommand(&.{
+//     //     "zig", "ar", "t", archive_path,
+//     // });
+//     // list.setStdoutBehavior(.capture);
+
+//     // // zig ar x <archive>
+//     // const extract = b.addSystemCommand(&.{
+//     //     b.zig_exe, "ar", "x", archive_path,
+//     // });
+//     // extract.cwd = out_dir;
+//     // extract.step.dependOn(&list.step);
+
+//     // // produce slice of absolute object paths
+//     // const members = try list.getStdOut(b.allocator); // list of names separated by \n
+//     // for (std.mem.splitScalar(u8, members, '\n')) |name| {
+//     //     if (name.len == 0) continue;
+//     //     const full = try std.fs.path.join(b.allocator, &.{ out_dir, name });
+//     //     lib.addObjectFile(full);
+//     // }
+// }
+
+// fn extractArchiveToObjs(
+//     b: *std.Build,
+//     archive_path: []const u8,
+// ) ![]const []const u8 {
+//     // Where to drop the extracted .o's (inside zig-cache):
+//     const out_dir = try b.cache_root.join(b.allocator, &.{ "unpacked", std.fs.path.basename(archive_path) });
+
+//     // 1.  zig ar t <archive>
+//     const list = b.addSystemCommand(&.{
+//         b.zig_exe, "ar", "t", archive_path,
+//     });
+//     list.capture_stdout = true;
+
+//     // 2.  zig ar x <archive>
+//     const extract = b.addSystemCommand(&.{
+//         b.zig_exe, "ar", "x", archive_path,
+//     });
+//     extract.cwd = out_dir;
+//     extract.step.dependOn(&list.step);
+
+//     // 3.  produce slice of absolute object paths
+//     var objs = std.ArrayList([]const u8).init(b.allocator);
+//     const members = try list.captureStdout(); // list of names separated by \n
+//     for (std.mem.splitScalar(u8, members, '\n')) |name| {
+//         if (name.len == 0) continue;
+//         const full = try std.fs.path.join(b.allocator, &.{ out_dir, name });
+//         try objs.append(full);
+//     }
+//     return objs.toOwnedSlice();
+// }
 
 fn ensureGitRepoCloned(allocator: std.mem.Allocator, clone_url: []const u8, revision: []const u8, dir: []const u8) !void {
     if (isEnvVarTruthy(allocator, "NO_ENSURE_SUBMODULES") or isEnvVarTruthy(allocator, "NO_ENSURE_GIT")) {

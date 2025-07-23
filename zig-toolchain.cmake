@@ -135,6 +135,13 @@ endif()
 set(CMAKE_C_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 set(CMAKE_CXX_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 
+# Set the flags passed to zig cc and zig c++ (and linker) in release mode
+# set(CMAKE_C_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti" CACHE INTERNAL "")
+# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti" CACHE INTERNAL "")
+set(CMAKE_C_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti -ffunction-sections -fdata-sections" CACHE INTERNAL "")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti -ffunction-sections -fdata-sections" CACHE INTERNAL "")
+
+# Static libs only, assuming any targets actually listen
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 # Cross-compile mode tweaks
@@ -169,6 +176,9 @@ set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "Generate build targets for the LLVM unit 
 set(LLVM_BUILD_TESTS OFF CACHE BOOL "Build LLVM unit tests. If OFF, just generate build targets.")
 set(LLVM_INCLUDE_DOCS OFF CACHE BOOL "Generate build targets for llvm documentation.")
 set(LLVM_BUILD_DOCS OFF CACHE BOOL "Build the llvm documentation.")
+set(LLVM_ENABLE_RTTI OFF CACHE BOOL "Enable run time type information")
+set(LLVM_ENABLE_EH OFF CACHE BOOL "Enable Exception handling")
+
 set(LLVM_DISTRIBUTION_COMPONENTS "dxcompiler" CACHE STRING "")
 
 if (WIN32)
