@@ -2,8 +2,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(NecroMachZgpu LANGUAGES C CXX)
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/dawn" EXCLUDE_FROM_ALL)
-set_target_properties(webgpu_dawn PROPERTIES EXCLUDE_FROM_ALL FALSE)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/dawn")
+# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/dawn" EXCLUDE_FROM_ALL)
+# set_target_properties(webgpu_dawn PROPERTIES EXCLUDE_FROM_ALL FALSE)
 
 if (WIN32)
     add_library(mingw_helpers STATIC "src/dawn/mingw_helpers.cpp")

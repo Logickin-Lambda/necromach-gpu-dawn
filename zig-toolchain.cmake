@@ -165,11 +165,11 @@ set(TINT_BUILD_CMD_TOOLS OFF CACHE BOOL "Build the Tint command line tools")
 set(TINT_BUILD_TESTS OFF CACHE BOOL "Build tests")
 
 set(HLSL_INCLUDE_TESTS OFF CACHE BOOL "Generate build targets for the HLSL unit tests.")
-set(HLSL_BUILD_DXILCONV OFF CACHE BOOL "Include DXBC to DXIL converter and tools.")
+# set(HLSL_BUILD_DXILCONV OFF CACHE BOOL "Include DXBC to DXIL converter and tools.")
 
-# set(LLVM_INCLUDE_TOOLS OFF CACHE BOOL "Generate build targets for the LLVM tools.")
-set(LLVM_BUILD_TOOLS OFF CACHE BOOL "Build the LLVM tools. If OFF, just generate build targets.")
-set(LLVM_INCLUDE_UTILS OFF CACHE BOOL "Generate build targets for the LLVM utils.")
+# # set(LLVM_INCLUDE_TOOLS OFF CACHE BOOL "Generate build targets for the LLVM tools.")
+# set(LLVM_BUILD_TOOLS OFF CACHE BOOL "Build the LLVM tools. If OFF, just generate build targets.")
+# set(LLVM_INCLUDE_UTILS OFF CACHE BOOL "Generate build targets for the LLVM utils.")
 set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "Build the LLVM example programs. If OFF, just generate build targets.")
 set(LLVM_BUILD_EXAMPLES OFF CACHE BOOL "Generate build targets for the LLVM examples")
 set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "Generate build targets for the LLVM unit tests.")
@@ -179,7 +179,7 @@ set(LLVM_BUILD_DOCS OFF CACHE BOOL "Build the llvm documentation.")
 set(LLVM_ENABLE_RTTI OFF CACHE BOOL "Enable run time type information")
 set(LLVM_ENABLE_EH OFF CACHE BOOL "Enable Exception handling")
 
-set(LLVM_DISTRIBUTION_COMPONENTS "dxcompiler" CACHE STRING "")
+# set(LLVM_DISTRIBUTION_COMPONENTS "dxcompiler" CACHE STRING "")
 
 if (WIN32)
     add_compile_definitions(

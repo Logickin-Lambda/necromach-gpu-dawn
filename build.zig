@@ -165,7 +165,7 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     _ = mod;
     // Source scanning requires that these files actually exist on disk, so we must download them
     // here right now if we are building from source.
-    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "29aa5f2af0115a12e5501ea52171ce5c59821cfd", sdkPath("/libs/dawn"));
+    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "69d005e74275f3a9a16398c1ba5cedc575d549dd", sdkPath("/libs/dawn"));
 
     // branch: mach
     // try ensureGitRepoCloned(b.allocator, "https://github.com/hexops/DirectXShaderCompiler", "bb5211aa247978e2ab75bea9f5c985ba3fabd269", sdkPath("/libs/DirectXShaderCompiler"));
@@ -235,36 +235,60 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
 
     _ = options;
 
-    // {
-    //     const target_triple = try step.rootModuleTarget().zigTriple(b.allocator);
-    //     const cmake_d_target = try std.fmt.allocPrint(b.allocator, "-DTARGET={s}", .{target_triple});
+    {
+        const target_triple = try step.rootModuleTarget().zigTriple(b.allocator);
+        const cmake_d_target = try std.fmt.allocPrint(b.allocator, "-DTARGET={s}", .{target_triple});
 
-    //     if (!isTargetSupported(step.rootModuleTarget())) {
-    //         std.log.err("Target {s} is not currently supported.", .{target_triple});
-    //         return error.TargetNotSupported;
-    //     } else {
-    //         std.log.info("Building zdawn for target {s}.", .{target_triple});
-    //     }
+        if (!isTargetSupported(step.rootModuleTarget())) {
+            std.log.err("Target {s} is not currently supported.", .{target_triple});
+            return error.TargetNotSupported;
+        } else {
+            std.log.info("Building zdawn for target {s}.", .{target_triple});
+        }
 
-    //     try exec(b.allocator, &[_][]const u8{
-    //         "cmake",
-    //         "-G",
-    //         "Ninja",
-    //         "-B",
-    //         "build",
-    //         "-DCMAKE_TOOLCHAIN_FILE=zig-toolchain.cmake",
-    //         cmake_d_target,
-    //         "-DCMAKE_BUILD_TYPE=Release",
-    //     }, sdkPath("."));
+        try exec(b.allocator, &.{
+            "cmake",
+            "-G",
+            "Ninja",
+            "-B",
+            "build",
+            "-DCMAKE_TOOLCHAIN_FILE=zig-toolchain.cmake",
+            cmake_d_target,
+            "-DCMAKE_BUILD_TYPE=Release",
+        }, sdkPath("."));
 
-    //     try exec(b.allocator, &[_][]const u8{
-    //         "cmake",
-    //         "--build",
-    //         "./build",
-    //         "--config",
-    //         "Release",
-    //     }, sdkPath("."));
-    // }
+        try exec(b.allocator, &.{
+            "cmake",
+            "--build",
+            "./build",
+            "--config",
+            "Release",
+        }, sdkPath("."));
+    }
+
+    {
+        const cwd = std.fs.cwd();
+        var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
+        defer obj_dir.close();
+
+        var archive_paths = std.ArrayList([]const u8).init(b.allocator);
+        try archive_paths.append(b.dependency("mach_dxc", .{}).path("machdxcompiler_pruned2.lib").getPath(b));
+        try archive_paths.append(b.path("build/libmingw_helpers.a").getPath(b));
+        try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a").getPath(b));
+
+        const tint_dir_path = "build/libs/dawn/src/tint";
+        const tint_dir = try cwd.makeOpenPath(tint_dir_path, .{ .iterate = true });
+        var tint_it = tint_dir.iterate();
+        while (try tint_it.next()) |tint_file| {
+            if (std.mem.endsWith(u8, tint_file.name, ".a")) {
+                const archive_path = try b.path(tint_dir_path).join(b.allocator, tint_file.name);
+                try archive_paths.append(archive_path.getPath(b));
+            }
+        }
+        for (archive_paths.items) |archive| {
+            try exec(b.allocator, &.{ "zig", "ar", "x", archive }, sdkPath("build/objects"));
+        }
+    }
 
     const zdawn_module = b.addModule("root", .{
         .root_source_file = b.path("src/zdawn.zig"),
@@ -291,59 +315,69 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
         const cwd = std.fs.cwd();
         var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
         defer obj_dir.close();
-
-        var archive_paths = std.ArrayList([]const u8).init(b.allocator);
-        try archive_paths.append(b.dependency("mach_dxc", .{}).path("machdxcompiler_pruned2.lib").getPath(b));
-        try archive_paths.append(b.path("build/libmingw_helpers.a").getPath(b));
-        try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a").getPath(b));
-
-        const tint_dir_path = "build/libs/dawn/src/tint";
-        const tint_dir = try cwd.makeOpenPath(tint_dir_path, .{ .iterate = true });
-        var tint_it = tint_dir.iterate();
-        while (try tint_it.next()) |tint_file| {
-            if (std.mem.endsWith(u8, tint_file.name, ".a")) {
-                const archive_path = try b.path(tint_dir_path).join(b.allocator, tint_file.name);
-                try archive_paths.append(archive_path.getPath(b));
-            }
-        }
-
-        // const archive_paths = [_][]const u8{
-        //     b.dependency("mach_dxc", .{}).path("machdxcompiler_pruned2.lib").getPath(b),
-        //     b.path("build/libmingw_helpers.a").getPath(b),
-        //     b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a").getPath(b),
-
-        //     b.path("build/libs/dawn/src/tint/libtint_lang_core_type.a").getPath(b),
-        //     // b.path("build/libs/dawn/src/tint/libtint_lang_core_type.a").getPath(b),
-        // };
-
-        const objects_dir_path = b.path("build/objects");
-
-        var extract_cmds = std.ArrayList(*std.Build.Step.Run).init(b.allocator);
-        for (archive_paths.items) |archive| {
-            try extract_cmds.append(b.addSystemCommand(&.{ "zig", "ar", "x", archive }));
-            extract_cmds.getLast().cwd = objects_dir_path;
-
-            zdawn_lib.step.dependOn(&extract_cmds.getLast().step);
-        }
-
-        // const obj_to_strip_names = [_][]const u8{
-        //     "DxilMetaDataHelper.obj",
-        // };
-        // for (obj_to_strip_names) |obj_name| {
-        //     const strip = b.addSystemCommand(&.{ "zig", "objcopy", "--strip-unneeded-symbol=StringCchPrintfA", obj_name });
-        //     strip.cwd = objects_dir_path;
-        //     for (extract_cmds.items) |e_cmd| {
-        //         strip.step.dependOn(&e_cmd.step);
-        //     }
-        //     zdawn_lib.step.dependOn(&strip.step);
-        // }
-
         var obj_it = obj_dir.iterate();
         while (try obj_it.next()) |entry| {
-            // if (std.mem.eql(u8, entry.name, "DxilMetadataHelper.obj")) continue;
             zdawn_lib.addObjectFile(try b.path("build/objects").join(b.allocator, entry.name));
         }
     }
+
+    // {
+    //     const cwd = std.fs.cwd();
+    //     var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
+    //     defer obj_dir.close();
+
+    //     var archive_paths = std.ArrayList([]const u8).init(b.allocator);
+    //     try archive_paths.append(b.dependency("mach_dxc", .{}).path("machdxcompiler_pruned2.lib").getPath(b));
+    //     try archive_paths.append(b.path("build/libmingw_helpers.a").getPath(b));
+    //     try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a").getPath(b));
+
+    //     const tint_dir_path = "build/libs/dawn/src/tint";
+    //     const tint_dir = try cwd.makeOpenPath(tint_dir_path, .{ .iterate = true });
+    //     var tint_it = tint_dir.iterate();
+    //     while (try tint_it.next()) |tint_file| {
+    //         if (std.mem.endsWith(u8, tint_file.name, ".a")) {
+    //             const archive_path = try b.path(tint_dir_path).join(b.allocator, tint_file.name);
+    //             try archive_paths.append(archive_path.getPath(b));
+    //         }
+    //     }
+
+    //     // const archive_paths = [_][]const u8{
+    //     //     b.dependency("mach_dxc", .{}).path("machdxcompiler_pruned2.lib").getPath(b),
+    //     //     b.path("build/libmingw_helpers.a").getPath(b),
+    //     //     b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a").getPath(b),
+
+    //     //     b.path("build/libs/dawn/src/tint/libtint_lang_core_type.a").getPath(b),
+    //     //     // b.path("build/libs/dawn/src/tint/libtint_lang_core_type.a").getPath(b),
+    //     // };
+
+    //     const objects_dir_path = b.path("build/objects");
+
+    //     var extract_cmds = std.ArrayList(*std.Build.Step.Run).init(b.allocator);
+    //     for (archive_paths.items) |archive| {
+    //         try extract_cmds.append(b.addSystemCommand(&.{ "zig", "ar", "x", archive }));
+    //         extract_cmds.getLast().cwd = objects_dir_path;
+
+    //         zdawn_lib.step.dependOn(&extract_cmds.getLast().step);
+    //     }
+
+    //     // const obj_to_strip_names = [_][]const u8{
+    //     //     "DxilMetaDataHelper.obj",
+    //     // };
+    //     // for (obj_to_strip_names) |obj_name| {
+    //     //     const strip = b.addSystemCommand(&.{ "zig", "objcopy", "--strip-unneeded-symbol=StringCchPrintfA", obj_name });
+    //     //     strip.cwd = objects_dir_path;
+    //     //     for (extract_cmds.items) |e_cmd| {
+    //     //         strip.step.dependOn(&e_cmd.step);
+    //     //     }
+    //     //     zdawn_lib.step.dependOn(&strip.step);
+    //     // }
+
+    //     var obj_it = obj_dir.iterate();
+    //     while (try obj_it.next()) |entry| {
+    //         // if (std.mem.eql(u8, entry.name, "DxilMetadataHelper.obj")) continue;
+    //         zdawn_lib.addObjectFile(try b.path("build/objects").join(b.allocator, entry.name));
+    //     }
+    // }
 
     {
         zdawn_lib.linkLibC();
