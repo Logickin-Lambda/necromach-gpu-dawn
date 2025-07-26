@@ -3,7 +3,7 @@ const std = @import("std");
 const log = std.log.scoped(.necromach_gpu_dawn);
 
 pub fn build(b: *std.Build) !void {
-    const optimize: std.builtin.OptimizeMode = .ReleaseFast;
+    const optimize = b.standardOptimizeOption(.{});
     const target = b.standardTargetOptions(.{});
 
     try prepPathStrings(b.allocator);
@@ -165,7 +165,7 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     _ = mod;
     // Source scanning requires that these files actually exist on disk, so we must download them
     // here right now if we are building from source.
-    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "69d005e74275f3a9a16398c1ba5cedc575d549dd", sdkPath("/libs/dawn"));
+    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "b5ed9ad6bb457ca1fbaa89d53b4bf27ba6d75ed0", sdkPath("/libs/dawn"));
 
     _ = options;
 
@@ -207,12 +207,14 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
 
         var archive_paths = std.ArrayList(std.Build.LazyPath).init(b.allocator);
         // try archive_paths.append(b.dependency("mach_dxc", .{}).path("machdxcompiler.lib"));
-        try archive_paths.append(b.dependency("mach_dxc", .{}).path("dawn_weak.lib"));
+        // try archive_paths.append(b.dependency("mach_dxc", .{}).path("dawn_weak.lib"));
         // try archive_paths.append(b.path("build/libmingw_helpers.a"));
         // try archive_paths.append(b.path("build/dawn.lib"));
-        try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
+        // try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
         // try archive_paths.append(b.path("build/libs/dawn/third_party/spirv-tools/source/libSPIRV-Tools.a"));
         // try archive_paths.append(b.path("build/libs/dawn/third_party/spirv-tools/source/opt/libSPIRV-Tools-opt.a"));
+
+        // try archive_paths.append(b.path("build/libs/dawn/src/tint/libtint_lang_core_ir.a"));
 
         // const tint_dir_path = "build/libs/dawn/src/tint";
         // const tint_dir = try cwd.makeOpenPath(tint_dir_path, .{ .iterate = true });
@@ -223,6 +225,9 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
         //         try archive_paths.append(archive_path);
         //     }
         // }
+
+        try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
+
         for (archive_paths.items) |archive| {
             const obj_out_dir_path = (try b.path("build/objects").join(b.allocator, archive.getDisplayName())).getPath(b);
             var obj_out_dir = try cwd.makeOpenPath(obj_out_dir_path, .{});
@@ -231,24 +236,28 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
         }
     }
 
-    // const zdawn_module = b.addModule("root", .{
-    //     .root_source_file = b.path("src/zdawn.zig"),
-    //     .target = step.root_module.resolved_target,
-    //     .optimize = .ReleaseFast,
-    // });
-    // zdawn_module.addIncludePath(b.path("build/libs/dawn/gen/include"));
-    // // zdawn_module.strip = true;
-
-    // const zdawn_lib = b.addSharedLibrary(.{
-    const zdawn_lib = b.addStaticLibrary(.{
-        .name = "zdawn",
+    const zdawn_module = b.addModule("root", .{
+        .root_source_file = b.path("src/zdawn.zig"),
         .target = step.root_module.resolved_target,
-        .optimize = .ReleaseFast,
-        // .root_module = zdawn_module,
+        .optimize = step.root_module.optimize,
+    });
+    zdawn_module.addIncludePath(b.path("build/libs/dawn/gen/include"));
+    zdawn_module.strip = true;
+
+    const zdawn_lib = b.addSharedLibrary(.{
+        // const zdawn_lib = b.addStaticLibrary(.{
+        .name = "zdawn",
+        // .target = step.root_module.resolved_target,
+        // .optimize = step.root_module.optimize,
+        .root_module = zdawn_module,
     });
     b.installArtifact(zdawn_lib);
-    // zdawn_lib.link_gc_sections = true;
+    zdawn_lib.link_gc_sections = true;
+    // zdawn_lib.want_lto = false;
     // zdawn_lib.verbose_link = true;
+
+    zdawn_lib.link_data_sections = true;
+    zdawn_lib.link_function_sections = true;
 
     // {
     //     zdawn_lib.addLibraryPath(b.dependency("mach_dxc", .{}).path("."));
@@ -343,7 +352,6 @@ fn ensureGitRepoCloned(allocator: std.mem.Allocator, clone_url: []const u8, revi
 }
 
 fn exec(allocator: std.mem.Allocator, argv: []const []const u8, cwd: []const u8) !void {
-    std.debug.print("EXECUTING {s} :: {s}\n", .{ cwd, argv[0] });
     var child = std.process.Child.init(argv, allocator);
     child.cwd = cwd;
     _ = try child.spawnAndWait();
