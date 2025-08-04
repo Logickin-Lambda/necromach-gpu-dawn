@@ -165,7 +165,7 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
     _ = mod;
     // Source scanning requires that these files actually exist on disk, so we must download them
     // here right now if we are building from source.
-    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "b5ed9ad6bb457ca1fbaa89d53b4bf27ba6d75ed0", sdkPath("/libs/dawn"));
+    try ensureGitRepoCloned(b.allocator, "https://github.com/a-day-old-bagel/necromach-dawn", "bddcf42234576c6b00a58f7b0e82cadc948cf297", sdkPath("/libs/dawn"));
 
     _ = options;
 
@@ -200,126 +200,126 @@ fn linkFromSource(b: *std.Build, step: *std.Build.Step.Compile, mod: *std.Build.
         }, sdkPath("."));
     }
 
-    {
-        const cwd = std.fs.cwd();
-        // var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
-        // defer obj_dir.close();
+    // {
+    //     const cwd = std.fs.cwd();
+    //     // var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
+    //     // defer obj_dir.close();
 
-        var archive_paths = std.ArrayList(std.Build.LazyPath).init(b.allocator);
-        // try archive_paths.append(b.dependency("mach_dxc", .{}).path("machdxcompiler.lib"));
-        // try archive_paths.append(b.dependency("mach_dxc", .{}).path("dawn_weak.lib"));
-        // try archive_paths.append(b.path("build/libmingw_helpers.a"));
-        // try archive_paths.append(b.path("build/dawn.lib"));
-        // try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
-        // try archive_paths.append(b.path("build/libs/dawn/third_party/spirv-tools/source/libSPIRV-Tools.a"));
-        // try archive_paths.append(b.path("build/libs/dawn/third_party/spirv-tools/source/opt/libSPIRV-Tools-opt.a"));
+    //     var archive_paths = std.ArrayList(std.Build.LazyPath).init(b.allocator);
+    //     // try archive_paths.append(b.dependency("mach_dxc", .{}).path("machdxcompiler.lib"));
+    //     // try archive_paths.append(b.dependency("mach_dxc", .{}).path("dawn_weak.lib"));
+    //     // try archive_paths.append(b.path("build/libmingw_helpers.a"));
+    //     // try archive_paths.append(b.path("build/dawn.lib"));
+    //     // try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
+    //     // try archive_paths.append(b.path("build/libs/dawn/third_party/spirv-tools/source/libSPIRV-Tools.a"));
+    //     // try archive_paths.append(b.path("build/libs/dawn/third_party/spirv-tools/source/opt/libSPIRV-Tools-opt.a"));
 
-        // try archive_paths.append(b.path("build/libs/dawn/src/tint/libtint_lang_core_ir.a"));
+    //     // try archive_paths.append(b.path("build/libs/dawn/src/tint/libtint_lang_core_ir.a"));
 
-        // const tint_dir_path = "build/libs/dawn/src/tint";
-        // const tint_dir = try cwd.makeOpenPath(tint_dir_path, .{ .iterate = true });
-        // var tint_it = tint_dir.iterate();
-        // while (try tint_it.next()) |tint_file| {
-        //     if (std.mem.endsWith(u8, tint_file.name, ".a")) {
-        //         const archive_path = try b.path(tint_dir_path).join(b.allocator, tint_file.name);
-        //         try archive_paths.append(archive_path);
-        //     }
-        // }
+    //     // const tint_dir_path = "build/libs/dawn/src/tint";
+    //     // const tint_dir = try cwd.makeOpenPath(tint_dir_path, .{ .iterate = true });
+    //     // var tint_it = tint_dir.iterate();
+    //     // while (try tint_it.next()) |tint_file| {
+    //     //     if (std.mem.endsWith(u8, tint_file.name, ".a")) {
+    //     //         const archive_path = try b.path(tint_dir_path).join(b.allocator, tint_file.name);
+    //     //         try archive_paths.append(archive_path);
+    //     //     }
+    //     // }
 
-        try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
+    //     try archive_paths.append(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
 
-        for (archive_paths.items) |archive| {
-            const obj_out_dir_path = (try b.path("build/objects").join(b.allocator, archive.getDisplayName())).getPath(b);
-            var obj_out_dir = try cwd.makeOpenPath(obj_out_dir_path, .{});
-            defer obj_out_dir.close();
-            try exec(b.allocator, &.{ "zig", "ar", "x", archive.getPath(b) }, obj_out_dir_path);
-        }
-    }
+    //     for (archive_paths.items) |archive| {
+    //         const obj_out_dir_path = (try b.path("build/objects").join(b.allocator, archive.getDisplayName())).getPath(b);
+    //         var obj_out_dir = try cwd.makeOpenPath(obj_out_dir_path, .{});
+    //         defer obj_out_dir.close();
+    //         try exec(b.allocator, &.{ "zig", "ar", "x", archive.getPath(b) }, obj_out_dir_path);
+    //     }
+    // }
 
-    const zdawn_module = b.addModule("root", .{
-        .root_source_file = b.path("src/zdawn.zig"),
-        .target = step.root_module.resolved_target,
-        .optimize = step.root_module.optimize,
-    });
-    zdawn_module.addIncludePath(b.path("build/libs/dawn/gen/include"));
-    zdawn_module.strip = true;
+    // const zdawn_module = b.addModule("root", .{
+    //     .root_source_file = b.path("src/zdawn.zig"),
+    //     .target = step.root_module.resolved_target,
+    //     .optimize = step.root_module.optimize,
+    // });
+    // zdawn_module.addIncludePath(b.path("build/libs/dawn/gen/include"));
+    // zdawn_module.strip = true;
 
-    const zdawn_lib = b.addSharedLibrary(.{
-        // const zdawn_lib = b.addStaticLibrary(.{
-        .name = "zdawn",
-        // .target = step.root_module.resolved_target,
-        // .optimize = step.root_module.optimize,
-        .root_module = zdawn_module,
-    });
-    b.installArtifact(zdawn_lib);
-    zdawn_lib.link_gc_sections = true;
-    // zdawn_lib.want_lto = false;
-    // zdawn_lib.verbose_link = true;
+    // const zdawn_lib = b.addSharedLibrary(.{
+    //     // const zdawn_lib = b.addStaticLibrary(.{
+    //     .name = "zdawn",
+    //     // .target = step.root_module.resolved_target,
+    //     // .optimize = step.root_module.optimize,
+    //     .root_module = zdawn_module,
+    // });
+    // b.installArtifact(zdawn_lib);
+    // zdawn_lib.link_gc_sections = true;
+    // // zdawn_lib.want_lto = false;
+    // // zdawn_lib.verbose_link = true;
 
-    zdawn_lib.link_data_sections = true;
-    zdawn_lib.link_function_sections = true;
+    // zdawn_lib.link_data_sections = true;
+    // zdawn_lib.link_function_sections = true;
+
+    // // {
+    // //     zdawn_lib.addLibraryPath(b.dependency("mach_dxc", .{}).path("."));
+    // //     // zdawn_lib.linkSystemLibrary("machdxcompiler_pruned2");
+    // //     // zdawn_lib.linkSystemLibrary2("machdxcompiler", .{ .weak = true });
+
+    // //     zdawn_lib.addLibraryPath(b.path("build"));
+    // //     zdawn_lib.linkSystemLibrary("mingw_helpers");
+
+    // //     // zdawn_lib.linkSystemLibrary2("dawn_weak", .{ .weak = true });
+    // //     zdawn_lib.linkSystemLibrary("dawn_weak");
+    // //     // zdawn_lib.linkSystemLibrary2("dawn", .{});
+
+    // //     zdawn_lib.addLibraryPath(b.path("build/libs/dawn/src/dawn/native"));
+    // //     zdawn_lib.linkSystemLibrary("webgpu_dawn");
+
+    // //     // zdawn_lib.addLibraryPath(b.path("build/libs/dawn/src/tint"));
+    // //     // zdawn_lib.linkSystemLibrary("tint_lang_core_type");
+
+    // //     // zdawn_lib.addLibraryPath(b.path("build/libs/dawn/third_party/spirv-tools/source"));
+    // //     // zdawn_lib.addLibraryPath(b.path("build/libs/dawn/third_party/spirv-tools/source/opt"));
+    // //     // zdawn_lib.linkSystemLibrary("SPIRV-Tools");
+    // //     // zdawn_lib.linkSystemLibrary("SPIRV-Tools-opt");
+
+    // // }
+
+    // // {
+    // //     zdawn_lib.addObjectFile(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
+    // //     zdawn_lib.addObjectFile(b.dependency("mach_dxc", .{}).path("dawn_weak.lib"));
+    // // }
+
+    // // {
+    // //     zdawn_lib.addObjectFile(b.path("build/objects/dependency/dxcapi.obj"));
+    // // }
 
     // {
-    //     zdawn_lib.addLibraryPath(b.dependency("mach_dxc", .{}).path("."));
-    //     // zdawn_lib.linkSystemLibrary("machdxcompiler_pruned2");
-    //     // zdawn_lib.linkSystemLibrary2("machdxcompiler", .{ .weak = true });
-
-    //     zdawn_lib.addLibraryPath(b.path("build"));
-    //     zdawn_lib.linkSystemLibrary("mingw_helpers");
-
-    //     // zdawn_lib.linkSystemLibrary2("dawn_weak", .{ .weak = true });
-    //     zdawn_lib.linkSystemLibrary("dawn_weak");
-    //     // zdawn_lib.linkSystemLibrary2("dawn", .{});
-
-    //     zdawn_lib.addLibraryPath(b.path("build/libs/dawn/src/dawn/native"));
-    //     zdawn_lib.linkSystemLibrary("webgpu_dawn");
-
-    //     // zdawn_lib.addLibraryPath(b.path("build/libs/dawn/src/tint"));
-    //     // zdawn_lib.linkSystemLibrary("tint_lang_core_type");
-
-    //     // zdawn_lib.addLibraryPath(b.path("build/libs/dawn/third_party/spirv-tools/source"));
-    //     // zdawn_lib.addLibraryPath(b.path("build/libs/dawn/third_party/spirv-tools/source/opt"));
-    //     // zdawn_lib.linkSystemLibrary("SPIRV-Tools");
-    //     // zdawn_lib.linkSystemLibrary("SPIRV-Tools-opt");
-
+    //     const cwd = std.fs.cwd();
+    //     var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
+    //     defer obj_dir.close();
+    //     var obj_walker = try obj_dir.walk(b.allocator);
+    //     while (try obj_walker.next()) |entry| {
+    //         if (entry.kind == .file) {
+    //             // if (std.mem.eql(u8, entry.basename, "AnalysisBasedWarnings.obj")) continue;
+    //             // if (std.mem.eql(u8, entry.basename, "DxilMetadataHelper.obj")) continue;
+    //             // if (std.mem.eql(u8, entry.basename, "DxilRootSignatureValidator.obj")) continue;
+    //             zdawn_lib.addObjectFile(try b.path("build/objects").join(b.allocator, entry.path));
+    //         }
+    //     }
     // }
 
     // {
-    //     zdawn_lib.addObjectFile(b.path("build/libs/dawn/src/dawn/native/libwebgpu_dawn.a"));
-    //     zdawn_lib.addObjectFile(b.dependency("mach_dxc", .{}).path("dawn_weak.lib"));
+    //     zdawn_lib.linkLibC();
+    //     zdawn_lib.linkLibCpp();
+    //     // zdawn_lib.linkSystemLibrary("oleaut32");
+    //     // zdawn_lib.linkSystemLibrary("ole32");
+    //     // zdawn_lib.linkSystemLibrary("dbghelp");
+    //     // zdawn_lib.linkSystemLibrary("dxguid");
+
+    //     // zdawn_lib.linkSystemLibrary("clang");
     // }
 
-    // {
-    //     zdawn_lib.addObjectFile(b.path("build/objects/dependency/dxcapi.obj"));
-    // }
-
-    {
-        const cwd = std.fs.cwd();
-        var obj_dir = try cwd.makeOpenPath("build/objects", .{ .iterate = true });
-        defer obj_dir.close();
-        var obj_walker = try obj_dir.walk(b.allocator);
-        while (try obj_walker.next()) |entry| {
-            if (entry.kind == .file) {
-                // if (std.mem.eql(u8, entry.basename, "AnalysisBasedWarnings.obj")) continue;
-                // if (std.mem.eql(u8, entry.basename, "DxilMetadataHelper.obj")) continue;
-                // if (std.mem.eql(u8, entry.basename, "DxilRootSignatureValidator.obj")) continue;
-                zdawn_lib.addObjectFile(try b.path("build/objects").join(b.allocator, entry.path));
-            }
-        }
-    }
-
-    {
-        zdawn_lib.linkLibC();
-        zdawn_lib.linkLibCpp();
-        // zdawn_lib.linkSystemLibrary("oleaut32");
-        // zdawn_lib.linkSystemLibrary("ole32");
-        // zdawn_lib.linkSystemLibrary("dbghelp");
-        // zdawn_lib.linkSystemLibrary("dxguid");
-
-        // zdawn_lib.linkSystemLibrary("clang");
-    }
-
-    step.linkLibrary(zdawn_lib);
+    // step.linkLibrary(zdawn_lib);
 }
 
 fn ensureGitRepoCloned(allocator: std.mem.Allocator, clone_url: []const u8, revision: []const u8, dir: []const u8) !void {
