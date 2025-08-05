@@ -66,7 +66,6 @@ endif()
 
 # Set C compiler to zig cc
 if (WIN32)
-    # Create executable wrapper for `zig cc` which can be called as a single argument for poor inept Windows
     set(_zig_c_wrapper "${CMAKE_BINARY_DIR}/zig-c.bat")
     file(WRITE "${_zig_c_wrapper}"
         "@echo off\r\n"
@@ -75,13 +74,20 @@ if (WIN32)
     )
     set(CMAKE_C_COMPILER "${_zig_c_wrapper}" CACHE FILEPATH "C compiler (Zig cc)" FORCE)
 else()
-    # Otherwise just do the sane thing for real operating systems
-    set(CMAKE_C_COMPILER ${ZIG_EXECUTABLE} cc CACHE FILEPATH "C compiler (Zig cc)" FORCE)
+    set(_zig_c_wrapper "${CMAKE_BINARY_DIR}/zig-cc.sh")
+    file(WRITE "${_zig_c_wrapper}"
+        "#!/usr/bin/env sh\n"
+        "exec \"${ZIG_EXECUTABLE}\" cc \"\$@\"\n"
+    )
+    file(CHMOD "${_zig_c_wrapper}"
+         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                     GROUP_READ GROUP_EXECUTE
+                     WORLD_READ WORLD_EXECUTE)
+    set(CMAKE_C_COMPILER "${_zig_c_wrapper}" CACHE FILEPATH "C compiler (Zig cc)" FORCE)
 endif()
 
 # Set C++ compiler to zig c++
 if (WIN32)
-    # Create executable wrapper for `zig c++` which can be called as a single argument for poor inept Windows
     set(_zig_cpp_wrapper "${CMAKE_BINARY_DIR}/zig-cpp.bat")
     file(WRITE "${_zig_cpp_wrapper}"
         "@echo off\r\n"
@@ -90,13 +96,20 @@ if (WIN32)
     )
     set(CMAKE_CXX_COMPILER "${_zig_cpp_wrapper}" CACHE FILEPATH "C++ compiler (Zig c++)" FORCE)
 else()
-    # Otherwise just do the sane thing for real operating systems
-    set(CMAKE_CXX_COMPILER ${ZIG_EXECUTABLE} c++ CACHE FILEPATH "C++ compiler (Zig c++)" FORCE)
+    set(_zig_cpp_wrapper "${CMAKE_BINARY_DIR}/zig-cpp.sh")
+    file(WRITE "${_zig_cpp_wrapper}"
+        "#!/usr/bin/env sh\n"
+        "exec \"${ZIG_EXECUTABLE}\" c++ \"\$@\"\n"
+    )
+    file(CHMOD "${_zig_cpp_wrapper}"
+         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                     GROUP_READ GROUP_EXECUTE
+                     WORLD_READ WORLD_EXECUTE)
+    set(CMAKE_CXX_COMPILER "${_zig_cpp_wrapper}" CACHE FILEPATH "C++ compiler (Zig c++)" FORCE)
 endif()
 
 # Set archiver/ranlib to zig ar
 if (WIN32)
-    # Create executable wrapper for `zig ar` which can be called as a single argument for poor inept Windows
     set(_zig_ar_wrapper "${CMAKE_BINARY_DIR}/zig-ar.bat")
     file(WRITE "${_zig_ar_wrapper}"
         "@echo off\r\n"
@@ -112,9 +125,27 @@ if (WIN32)
     set(CMAKE_AR "${_zig_ar_wrapper}" CACHE FILEPATH "Archiver (zig ar)" FORCE)
     set(CMAKE_RANLIB "${_zig_ar_wrapper}" CACHE FILEPATH "Ranlib (zig ar)" FORCE)
 else()
-    # Otherwise just do the sane thing for real operating systems
-    set(CMAKE_AR ${ZIG_EXECUTABLE} ar CACHE FILEPATH "Archiver (zig ar)" FORCE)
-    set(CMAKE_RANLIB ${ZIG_EXECUTABLE} ar s CACHE FILEPATH "Ranlib (zig ar)" FORCE)
+    set(_zig_ar_wrapper "${CMAKE_BINARY_DIR}/zig-ar.sh")
+    file(WRITE "${_zig_ar_wrapper}"
+        "#!/usr/bin/env sh\n"
+        "if [ \"$1\" = \"qc\" ]; then\n"
+        "  # archive creation: qc <archive> <objs...>\n"
+        "  shift\n"
+        "  exec \"${ZIG_EXECUTABLE}\" ar qc \"\$@\"\n"
+        "elif [ $# -eq 1 ]; then\n"
+        "  # ranlib step: only <archive> passed\n"
+        "  exec \"${ZIG_EXECUTABLE}\" ar s \"\$1\"\n"
+        "else\n"
+        "  # fallback to plain ar\n"
+        "  exec \"${ZIG_EXECUTABLE}\" ar \"\$@\"\n"
+        "fi\n"
+    )
+    file(CHMOD "${_zig_ar_wrapper}"
+         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                     GROUP_READ GROUP_EXECUTE
+                     WORLD_READ WORLD_EXECUTE)
+    set(CMAKE_AR "${_zig_ar_wrapper}" CACHE FILEPATH "Archiver (zig ar)" FORCE)
+    set(CMAKE_RANLIB "${_zig_ar_wrapper}" CACHE FILEPATH "Ranlib (zig ar)" FORCE)
 endif()
 
 if (WIN32)
@@ -136,8 +167,6 @@ set(CMAKE_C_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 set(CMAKE_CXX_COMPILER_TARGET ${TARGET} CACHE INTERNAL "")
 
 # Set the flags passed to zig cc and zig c++ (and linker) in release mode
-# set(CMAKE_C_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti" CACHE INTERNAL "")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti" CACHE INTERNAL "")
 set(CMAKE_C_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti -ffunction-sections -fdata-sections" CACHE INTERNAL "")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0 -DNDEBUG -fno-exceptions -fno-rtti -ffunction-sections -fdata-sections" CACHE INTERNAL "")
 
@@ -168,11 +197,6 @@ set(TINT_BUILD_CMD_TOOLS OFF CACHE BOOL "Build the Tint command line tools")
 set(TINT_BUILD_TESTS OFF CACHE BOOL "Build tests")
 
 set(HLSL_INCLUDE_TESTS OFF CACHE BOOL "Generate build targets for the HLSL unit tests.")
-# set(HLSL_BUILD_DXILCONV OFF CACHE BOOL "Include DXBC to DXIL converter and tools.")
-
-# # set(LLVM_INCLUDE_TOOLS OFF CACHE BOOL "Generate build targets for the LLVM tools.")
-# set(LLVM_BUILD_TOOLS OFF CACHE BOOL "Build the LLVM tools. If OFF, just generate build targets.")
-# set(LLVM_INCLUDE_UTILS OFF CACHE BOOL "Generate build targets for the LLVM utils.")
 set(LLVM_INCLUDE_EXAMPLES OFF CACHE BOOL "Build the LLVM example programs. If OFF, just generate build targets.")
 set(LLVM_BUILD_EXAMPLES OFF CACHE BOOL "Generate build targets for the LLVM examples")
 set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "Generate build targets for the LLVM unit tests.")
@@ -182,7 +206,12 @@ set(LLVM_BUILD_DOCS OFF CACHE BOOL "Build the llvm documentation.")
 set(LLVM_ENABLE_RTTI OFF CACHE BOOL "Enable run time type information")
 set(LLVM_ENABLE_EH OFF CACHE BOOL "Enable Exception handling")
 
-# set(LLVM_DISTRIBUTION_COMPONENTS "dxcompiler" CACHE STRING "")
+if (${CMAKE_SYSTEM_NAME} MATCHES Linux AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64)
+    # Fix the clownery clang (and so zig) tries to pull with x86_64-unknown-linux-gnu, causing missing libs
+    set(CMAKE_LIBRARY_ARCHITECTURE x86_64-linux-gnu CACHE INTERNAL "")
+    # Why on Earth would this be necessary? Cursed nonsense, but can't find gl.h otherwise (!?)
+    include_directories(SYSTEM /usr/include)
+endif()
 
 if (WIN32)
     add_compile_definitions(
