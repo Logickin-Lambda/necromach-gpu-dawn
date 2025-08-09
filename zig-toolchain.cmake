@@ -98,13 +98,20 @@ if (WIN32)
 else()
     set(_zig_cpp_wrapper "${CMAKE_BINARY_DIR}/zig-cpp.sh")
     file(WRITE "${_zig_cpp_wrapper}"
-        "#!/usr/bin/env sh\n"
-        "exec \"${ZIG_EXECUTABLE}\" c++ \"\$@\"\n"
+        "#!/usr/bin/env bash\n"
+        "filtered=()\n"
+        "for a in \"\$@\"; do\n"
+        "  case \"\$a\" in\n"
+        "    -march=armv8*) ;;  # drop Abseil's -march=armv8-a+crypto\n"
+        "    *) filtered+=(\"\$a\");;\n"
+        "  esac\n"
+        "done\n"
+        "exec \"${ZIG_EXECUTABLE}\" c++ \"\${filtered[@]}\"\n"
     )
     file(CHMOD "${_zig_cpp_wrapper}"
-         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                     GROUP_READ GROUP_EXECUTE
-                     WORLD_READ WORLD_EXECUTE)
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                    GROUP_READ GROUP_EXECUTE
+                    WORLD_READ WORLD_EXECUTE)
     set(CMAKE_CXX_COMPILER "${_zig_cpp_wrapper}" CACHE FILEPATH "C++ compiler (Zig c++)" FORCE)
 endif()
 
@@ -215,6 +222,7 @@ endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES Linux AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES aarch64)
     set(DAWN_USE_X11 OFF CACHE BOOL "Enable support for X11 surface")
+    include_directories(SYSTEM /usr/include)
 endif()
 
 if (WIN32)
