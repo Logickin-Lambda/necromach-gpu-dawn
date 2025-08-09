@@ -213,6 +213,10 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES x86
     include_directories(SYSTEM /usr/include)
 endif()
 
+if (${CMAKE_SYSTEM_NAME} MATCHES Linux AND ${CMAKE_SYSTEM_PROCESSOR} MATCHES aarch64)
+    set(DAWN_USE_X11 OFF CACHE BOOL "Enable support for X11 surface")
+endif()
+
 if (WIN32)
     add_compile_definitions(
         _SH_DENYNO=0x40   # permit read+write sharing
