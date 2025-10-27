@@ -16,9 +16,11 @@ pub fn build(b: *std.Build) !void {
     // or Dawn C++ examples for functional example code.
     const example = b.addExecutable(.{
         .name = "empty",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     try link(b, example, example.root_module, options);
 
@@ -1861,5 +1863,6 @@ inline fn prepPathStrings(allocator: std.mem.Allocator) !void {
 }
 
 var alloc: ?std.mem.Allocator = null;
-var cwd_name_buf: [std.fs.MAX_NAME_BYTES]u8 = .{0} ** std.fs.MAX_NAME_BYTES;
+// var cwd_name_buf: [std.fs.MAX_NAME_BYTES]u8 = .{0} ** std.fs.MAX_NAME_BYTES;
+var cwd_name_buf: [std.fs.max_name_bytes]u8 = .{0} ** std.fs.max_name_bytes;
 var cwd_path: ?[]const u8 = null;
